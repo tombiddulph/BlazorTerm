@@ -1,0 +1,91 @@
+.components-reconnect-first-attempt-visible,
+.components-reconnect-repeated-attempt-visible,
+.components-reconnect-failed-visible,
+.components-pause-visible,
+.components-resume-failed-visible {
+    display: none;
+}
+
+#components-reconnect-modal.components-reconnect-show .components-reconnect-first-attempt-visible,
+#components-reconnect-modal.components-reconnect-paused .components-pause-visible,
+#components-reconnect-modal.components-reconnect-resume-failed .components-resume-failed-visible,
+#components-reconnect-modal.components-reconnect-retrying,
+#components-reconnect-modal.components-reconnect-retrying .components-reconnect-repeated-attempt-visible,
+#components-reconnect-modal.components-reconnect-failed,
+#components-reconnect-modal.components-reconnect-failed .components-reconnect-failed-visible {
+    display: block;
+}
+
+#components-reconnect-modal {
+    background: #0f111a;
+    border: 1px solid #343746;
+    border-radius: 7px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+    color: #d8dee9;
+    font: 0.8rem "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    margin: 24vh auto;
+    max-width: calc(100vw - 2rem);
+    padding: 0;
+    width: 31rem;
+}
+
+#components-reconnect-modal::backdrop {
+    backdrop-filter: blur(3px);
+    background: rgba(4, 5, 8, 0.68);
+}
+
+.reconnect-titlebar {
+    align-items: center;
+    background: linear-gradient(#333438, #28292d);
+    border-radius: 6px 6px 0 0;
+    color: #9da2af;
+    display: flex;
+    font-size: 0.65rem;
+    gap: 7px;
+    height: 34px;
+    padding: 0 11px;
+}
+
+.reconnect-titlebar > span:last-child {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.reconnect-dot {
+    border-radius: 50%;
+    height: 10px;
+    width: 10px;
+}
+
+.reconnect-dot.red { background: #ff5f57; }
+.reconnect-dot.yellow { background: #febc2e; }
+.reconnect-dot.green { background: #28c840; }
+
+.reconnect-terminal {
+    min-height: 9rem;
+    padding: 1.5rem;
+}
+
+#components-reconnect-modal p {
+    line-height: 1.8;
+    margin: 0 0 1rem;
+}
+
+.reconnect-prompt { color: #c3e88d; }
+.reconnect-error { color: #ff757f; }
+.reconnect-muted { color: #73798b; }
+
+#components-reconnect-modal button {
+    background: #82aaff;
+    border: 0;
+    border-radius: 3px;
+    color: #11131a;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    padding: 0.4rem 0.8rem;
+}
+
+#components-reconnect-modal button:hover {
+    background: #a8c3ff;
+}

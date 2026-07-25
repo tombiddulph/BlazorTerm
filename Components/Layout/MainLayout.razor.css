@@ -1,0 +1,24 @@
+#blazor-error-ui {
+    background: #211a0d;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    color: #f4cf7b;
+    font: 0.8rem "IBM Plex Mono", Consolas, monospace;
+    padding: 0.75rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui a {
+    color: #fff1c8;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }

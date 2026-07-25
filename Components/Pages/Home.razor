@@ -1,0 +1,639 @@
+@page "/"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+
+<PageTitle>Terminal / Home</PageTitle>
+
+<main class="site-shell @Theme" @onclick="FocusTerminal">
+    <section class="terminal-window" aria-label="Interactive personal terminal">
+        <header class="iterm-header">
+            <div class="traffic-lights" aria-hidden="true">
+                <span class="close"></span>
+                <span class="minimize"></span>
+                <span class="maximize"></span>
+            </div>
+            <div class="terminal-tab active">
+                <span class="tab-symbol">&gt;_</span>
+                <span>@TerminalContent.Owner@@@TerminalContent.Host: ~</span>
+            </div>
+            <button class="new-tab" type="button" aria-label="New tab">+</button>
+            <div class="header-title">1. zsh</div>
+        </header>
+
+        <div class="workspace">
+            <div class="terminal" id="terminal-output">
+                <div class="session-intro">
+                    <div>Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
+                    <div>@TerminalContent.DisplayName / Senior Software Engineer / C# + Backend</div>
+                    <div>Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
+                </div>
+
+                @foreach (var entry in Entries)
+                {
+                    <div class="history-entry">
+                        <div class="prompt-row executed">
+                            <Prompt Path="@entry.Path" />
+                            <span class="executed-command">@entry.Command</span>
+                        </div>
+                        @foreach (var line in entry.Lines)
+                        {
+                            <div class="output-line @line.Tone">
+                                @if (!string.IsNullOrEmpty(line.Command))
+                                {
+                                    <button class="output-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
+                                }
+                                else if (!string.IsNullOrEmpty(line.Url))
+                                {
+                                    <a class="output-link" href="@line.Url" target="_blank" rel="noopener noreferrer">@line.Text</a>
+                                }
+                                else
+                                {
+                                    @line.Text
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="prompt-row active-prompt">
+                    <Prompt Path="@_path" />
+                    <input id="terminal-input"
+                           class="command-input"
+                           value="@Input"
+                           @oninput="UpdateInput"
+                           @onkeydown="HandleKeyDown"
+                           data-command-completions="@string.Join(',', Commands)"
+                           data-file-completions="@string.Join(',', TerminalContent.Files.Keys)"
+                           data-project-completions="@string.Join(',', TerminalContent.Projects.Select(project => project.Slug))"
+                           autocomplete="off"
+                           autocapitalize="off"
+                           spellcheck="false"
+                           aria-label="Terminal command" />
+                    <span class="cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+        </div>
+
+        <footer class="terminal-footer">
+            <span><kbd>↑</kbd><kbd>↓</kbd> HISTORY</span>
+            <span><kbd>TAB</kbd> COMPLETE</span>
+            <span><kbd>CTRL</kbd> + <kbd>L</kbd> CLEAR</span>
+            <span class="footer-location">~/portfolio</span>
+        </footer>
+    </section>
+</main>
+
+@code {
+    private static readonly string[] Commands =
+    [
+        "help", "neofetch", "man", "about", "resume", "stack", "timeline", "status",
+        "experience", "education", "skills", "projects", "project", "contributions",
+        "contact", "github", "linkedin", "open", "history", "ls", "cat", "pwd",
+        "whoami", "date", "clear", "theme", "coffee", "fortune", "sudo"
+    ];
+
+    private static readonly IReadOnlyDictionary<string, string> Aliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["?"] = "help",
+            ["bio"] = "about",
+            ["cv"] = "resume",
+            ["repos"] = "projects",
+            ["oss"] = "contributions",
+            ["work"] = "experience",
+            ["cls"] = "clear"
+        };
+
+    private string _path = "~";
+    private int _historyIndex;
+    private bool _shouldFocus = true;
+
+    [PersistentState]
+    public TerminalSession? PersistedSession { get; set; }
+
+    private TerminalSession Session => PersistedSession ??= new();
+    private List<HistoryEntry> Entries => Session.Entries;
+    private List<string> CommandHistory => Session.CommandHistory;
+    private string Input { get => Session.Input; set => Session.Input = value; }
+    private string Theme { get => Session.Theme; set => Session.Theme = value; }
+    private DateTimeOffset SessionStarted => Session.Started;
+
+    protected override void OnInitialized()
+    {
+        _historyIndex = CommandHistory.Count;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldFocus)
+        {
+            _shouldFocus = false;
+            await JS.InvokeVoidAsync("terminalUi.focusAndScroll", "terminal-input", "terminal-output");
+        }
+    }
+
+    private void UpdateInput(ChangeEventArgs args)
+    {
+        Input = args.Value == null ? string.Empty : args.Value.ToString() ?? string.Empty;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.CtrlKey && args.Key.Equals("l", StringComparison.OrdinalIgnoreCase))
+        {
+            Entries.Clear();
+            Input = string.Empty;
+            await RequestFocus();
+            return;
+        }
+
+        switch (args.Key)
+        {
+            case "Enter":
+                Execute(Input);
+                await RequestFocus();
+                break;
+            case "ArrowUp":
+                if (_historyIndex > 0)
+                    Input = CommandHistory[--_historyIndex];
+                break;
+            case "ArrowDown":
+                if (_historyIndex < CommandHistory.Count - 1)
+                    Input = CommandHistory[++_historyIndex];
+                else
+                {
+                    _historyIndex = CommandHistory.Count;
+                    Input = string.Empty;
+                }
+                break;
+        }
+    }
+
+    private async Task RunShortcut(string command)
+    {
+        Execute(command);
+        await RequestFocus();
+    }
+
+    private Task FocusTerminal()
+    {
+        return JS.InvokeVoidAsync("terminalUi.focus", "terminal-input").AsTask();
+    }
+
+    private Task RequestFocus()
+    {
+        _shouldFocus = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void Execute(string rawCommand)
+    {
+        var fullCommand = rawCommand.Trim();
+        Input = string.Empty;
+
+        if (fullCommand.Length == 0)
+            return;
+
+        CommandHistory.Add(fullCommand);
+        _historyIndex = CommandHistory.Count;
+
+        var parts = fullCommand.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var command = parts[0].ToLowerInvariant();
+        command = Aliases.GetValueOrDefault(command, command);
+        var arguments = parts.Skip(1).ToArray();
+        var lines = RunCommand(command, arguments);
+
+        if (command != "clear")
+            Entries.Add(new HistoryEntry(fullCommand, _path, lines.ToList()));
+    }
+
+    private IReadOnlyList<TerminalLine> RunCommand(string command, string[] arguments)
+    {
+        switch (command)
+        {
+            case "help":
+                return new[]
+                {
+                    Line("AVAILABLE COMMANDS", "heading"),
+                    Link("neofetch     Quick profile overview", "neofetch"),
+                    Link("man tom      Full profile manual", "man tom"),
+                    Link("about       A short introduction", "about"),
+                    Link("resume      Terminal-formatted CV", "resume"),
+                    Link("stack       Technologies I work with", "stack"),
+                    Link("timeline    Career history at a glance", "timeline"),
+                    Link("experience  My professional history", "experience"),
+                    Link("education   Degree and university", "education"),
+                    Link("skills      Technologies and specialisms", "skills"),
+                    Link("projects    Selected GitHub projects", "projects"),
+                    Link("project <name>  Open a project case study", "project service-bus-explorer"),
+                    Link("contributions  Open-source contributions", "contributions"),
+                    Link("status      What I am focused on", "status"),
+                    Link("contact     Ways to get in touch", "contact"),
+                    Link("ls          List files", "ls"),
+                    Link("cat <file>  Read a file", "cat readme.txt"),
+                    Line("pwd          Print working directory"),
+                    Line("whoami       Print the current user"),
+                    Line("date         Print server time"),
+                    Link("history      Show this session's commands", "history"),
+                    External("github       Open my GitHub profile", TerminalContent.GitHubUrl),
+                    External("linkedin     Open my LinkedIn profile", TerminalContent.LinkedInUrl),
+                    Line("theme <name> Switch between green and amber"),
+                    Line("clear        Clear the terminal")
+                };
+            case "neofetch":
+                return NeofetchLines();
+            case "man":
+                return ManLines(arguments);
+            case "about":
+            case "experience":
+            case "education":
+            case "skills":
+                return ReadFile(command + ".txt");
+            case "projects":
+                return ProjectLines();
+            case "project":
+                return ProjectDetailLines(arguments);
+            case "contributions":
+                return ContributionLines();
+            case "resume":
+                return ResumeLines();
+            case "stack":
+                return StackLines();
+            case "timeline":
+                return TimelineLines();
+            case "status":
+                return StatusLines();
+            case "contact":
+                return ContactLines();
+            case "ls":
+                return TerminalContent.Files.Keys.Select(name => Link(name, "cat " + name)).ToArray();
+            case "cat":
+                return arguments.Length == 0
+                    ? new[] { Line("cat: missing file operand", "error") }
+                    : ReadFile(arguments[0]);
+            case "pwd":
+                return new[] { Line("/home/" + TerminalContent.Owner) };
+            case "whoami":
+                return new[] { Line(TerminalContent.Owner) };
+            case "date":
+                return new[] { Line(DateTimeOffset.Now.ToString("ddd MMM dd HH:mm:ss zzz yyyy")) };
+            case "linkedin":
+                return new[] { External("linkedin.com/in/tabiddulph", TerminalContent.LinkedInUrl) };
+            case "github":
+                return GitHubLines();
+            case "open":
+                return OpenLines(arguments);
+            case "history":
+                return HistoryLines();
+            case "coffee":
+                return CoffeeLines();
+            case "fortune":
+                return FortuneLines();
+            case "sudo":
+                return new[] { Line("tom is not in the sudoers file. This incident will be reported.", "error") };
+            case "clear":
+                Entries.Clear();
+                return Array.Empty<TerminalLine>();
+            case "theme":
+                return SetTheme(arguments);
+            default:
+                return UnknownCommandLines(command);
+        }
+    }
+
+    private IReadOnlyList<TerminalLine> ReadFile(string fileName)
+    {
+        string[]? content;
+        if (!TerminalContent.Files.TryGetValue(fileName, out content))
+            return new[] { Line("cat: " + fileName + ": No such file", "error") };
+
+        return content.Select(text => Line(text, text.All(char.IsUpper) && text.Length > 0 ? "heading" : string.Empty)).ToArray();
+    }
+
+    private IReadOnlyList<TerminalLine> SetTheme(string[] arguments)
+    {
+        if (arguments.Length == 0)
+            return new[] { Line("Themes: green, amber. Current: " + Theme.Replace("theme-", string.Empty)) };
+
+        var requested = arguments[0].ToLowerInvariant();
+        if (requested != "green" && requested != "amber")
+            return new[] { Line("theme: choose 'green' or 'amber'", "error") };
+
+        Theme = "theme-" + requested;
+        return new[] { Line("Theme changed to " + requested + ".") };
+    }
+
+    private static IReadOnlyList<TerminalLine> GitHubLines()
+    {
+        return
+        [
+            Line("GITHUB / tombiddulph", "heading"),
+            Line("35 public repositories / 2 public gists / member since 2016"),
+            External("github.com/tombiddulph", TerminalContent.GitHubUrl),
+            Link("run: projects", "projects"),
+            Link("run: contributions", "contributions")
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> NeofetchLines()
+    {
+        return
+        [
+            Line("       .----.       tom@portfolio", "heading"),
+            Line("      / .--. \\      -------------"),
+            Line("     | |    | |     Role: Senior Software Engineer"),
+            Line("     | |.-\"\"-.|     Focus: C#, .NET, backend, fintech"),
+            Line("    ///`.::::.`\\\\    Cloud: Azure + Service Bus"),
+            Line("   ||| ::/  \\:: ;||   Observability: OpenTelemetry"),
+            Line("   ||; ::\\__/:: ;||   Location: Leeds, UK"),
+            Line("    \\\\ '::::' //    Homelab: Proxmox + Kubernetes"),
+            Line("     `=':-..-'`     GitHub: 35 public repositories"),
+            Line("                     Shell: Blazor / .NET 10 / C# 14"),
+            External("                     github.com/tombiddulph", TerminalContent.GitHubUrl)
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> ManLines(string[] arguments)
+    {
+        if (arguments.Length > 0 && !arguments[0].Equals("tom", StringComparison.OrdinalIgnoreCase))
+            return [Line("No manual entry for " + arguments[0], "error")];
+
+        return
+        [
+            Line("TOM(1)                       PORTFOLIO MANUAL                       TOM(1)", "heading"),
+            Line(string.Empty),
+            Line("NAME", "heading"),
+            Line("    Tom Biddulph - senior software engineer"),
+            Line(string.Empty),
+            Line("SYNOPSIS", "heading"),
+            Line("    Backend-focused C# engineer building reliable web and fintech systems."),
+            Line(string.Empty),
+            Line("DESCRIPTION", "heading"),
+            Line("    Builds accessible financial products at NewDay and open-source developer"),
+            Line("    tooling around Azure, distributed messaging, and observability."),
+            Line(string.Empty),
+            Line("SEE ALSO", "heading"),
+            Link("    resume(1), projects(1), contributions(1), contact(1)", "resume")
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> ResumeLines()
+    {
+        return
+        [
+            Line("TOM BIDDULPH", "heading"),
+            Line("Senior Software Engineer / C# / Backend / Fintech"),
+            Line("Leeds, United Kingdom"),
+            Line(string.Empty),
+            Line("EXPERIENCE", "heading"),
+            Line("2023 - now   NewDay         Senior Software Engineer"),
+            Line("2022         Codat          Senior Software Engineer"),
+            Line("2021 - 2022  Checkout.com   Software Engineer II"),
+            Line("2019 - 2020  NewDay         Software Engineer"),
+            Line("2018 - 2019  AND Digital    Associate"),
+            Line(string.Empty),
+            Line("EDUCATION", "heading"),
+            Line("University of Hull / BSc Computer Science / First-class honours"),
+            Line(string.Empty),
+            Line("SPECIALISMS", "heading"),
+            Line(".NET, C#, backend systems, Azure, messaging, OpenTelemetry"),
+            Line("Self-hosting, Proxmox, Kubernetes"),
+            Line(string.Empty),
+            External("GitHub", TerminalContent.GitHubUrl),
+            External("LinkedIn", TerminalContent.LinkedInUrl)
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> StackLines()
+    {
+        return
+        [
+            Line("TECHNOLOGY STACK", "heading"),
+            Line("Languages       C#, TypeScript, SQL"),
+            Line("Platform        .NET, ASP.NET Core, Azure Functions"),
+            Line("Cloud           Azure, Service Bus, Application Insights"),
+            Line("Infrastructure  Proxmox, Kubernetes, self-hosting"),
+            Line("Observability   OpenTelemetry, distributed tracing, OTLP"),
+            Line("Delivery        Docker, GitHub Actions, CI/CD"),
+            Line("Testing         TUnit, integration testing, test hosts")
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> TimelineLines()
+    {
+        return
+        [
+            Line("CAREER TIMELINE", "heading"),
+            Line("2018  [AND Digital]---- Associate"),
+            Line("         |"),
+            Line("2019  [NewDay]--------- Software Engineer"),
+            Line("         |"),
+            Line("2021  [Checkout.com]--- Software Engineer II"),
+            Line("         |"),
+            Line("2022  [Codat]---------- Senior Software Engineer"),
+            Line("         |"),
+            Line("2023  [NewDay]--------- Senior Software Engineer ----> now")
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> StatusLines()
+    {
+        return
+        [
+            Line("STATUS", "heading"),
+            Line("role       Senior Software Engineer at NewDay"),
+            Line("building   .NET, Azure, messaging, and observability tooling"),
+            Line("learning   source generation and distributed telemetry"),
+            External("activity   github.com/tombiddulph", TerminalContent.GitHubUrl)
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> ProjectLines()
+    {
+        List<TerminalLine> lines = [Line("SELECTED PROJECTS", "heading")];
+
+        foreach (var project in TerminalContent.Projects)
+        {
+            lines.Add(External(project.Name + "  [" + project.Stack + "]", project.Url));
+            lines.Add(Line("  " + project.Description));
+            lines.Add(Line(string.Empty));
+        }
+
+        lines.Add(External("View all 35 public repositories", TerminalContent.GitHubUrl + "?tab=repositories"));
+        return lines;
+    }
+
+    private static IReadOnlyList<TerminalLine> ProjectDetailLines(string[] arguments)
+    {
+        if (arguments.Length == 0)
+            return [Line("usage: project <name>", "error"), Link("available projects", "projects")];
+
+        var query = string.Join('-', arguments).ToLowerInvariant();
+        var project = TerminalContent.Projects.FirstOrDefault(item =>
+            item.Slug.StartsWith(query, StringComparison.OrdinalIgnoreCase) ||
+            item.Name.Replace(" ", "-").StartsWith(query, StringComparison.OrdinalIgnoreCase));
+
+        if (project is null)
+            return [Line("project: '" + string.Join(' ', arguments) + "' not found", "error"), Link("available projects", "projects")];
+
+        List<TerminalLine> lines =
+        [
+            Line(project.Name.ToUpperInvariant(), "heading"),
+            Line(project.Stack),
+            Line(project.Description),
+            Line(string.Empty),
+            Line("ARCHITECTURE", "heading")
+        ];
+
+        for (var i = 0; i < project.Architecture.Length; i++)
+        {
+            lines.Add(Line("  " + project.Architecture[i]));
+            if (i < project.Architecture.Length - 1)
+                lines.Add(Line("          |"));
+        }
+
+        lines.Add(Line(string.Empty));
+        lines.Add(Line("HIGHLIGHTS", "heading"));
+        lines.AddRange(project.Highlights.Select(highlight => Line("  + " + highlight)));
+        lines.Add(Line(string.Empty));
+        lines.Add(External("View source on GitHub", project.Url));
+        return lines;
+    }
+
+    private static IReadOnlyList<TerminalLine> ContributionLines()
+    {
+        List<TerminalLine> lines =
+        [
+            Line("OPEN-SOURCE CONTRIBUTIONS", "heading"),
+            Line("4 merged external pull requests / 1 currently open"),
+            Line(string.Empty)
+        ];
+
+        foreach (var contribution in TerminalContent.Contributions)
+        {
+            lines.Add(External("[" + contribution.Status + "] " + contribution.Name, contribution.Url));
+            lines.Add(Line("  " + contribution.Description));
+        }
+
+        return lines;
+    }
+
+    private static IReadOnlyList<TerminalLine> ContactLines()
+    {
+        return
+        [
+            Line("CONTACT", "heading"),
+            External("github    github.com/tombiddulph", TerminalContent.GitHubUrl),
+            External("linkedin  linkedin.com/in/tabiddulph", TerminalContent.LinkedInUrl)
+        ];
+    }
+
+    private IReadOnlyList<TerminalLine> OpenLines(string[] arguments)
+    {
+        if (arguments.Length == 0)
+            return [External("github.com/tombiddulph", TerminalContent.GitHubUrl)];
+
+        var query = string.Join('-', arguments);
+        var project = TerminalContent.Projects.FirstOrDefault(item =>
+            item.Slug.StartsWith(query, StringComparison.OrdinalIgnoreCase));
+
+        return project is null
+            ? [Line("open: unknown target '" + string.Join(' ', arguments) + "'", "error")]
+            : [External("open " + project.Name, project.Url)];
+    }
+
+    private IReadOnlyList<TerminalLine> HistoryLines()
+    {
+        return CommandHistory
+            .Select((command, index) => Line($"{index + 1,4}  {command}"))
+            .ToArray();
+    }
+
+    private static IReadOnlyList<TerminalLine> CoffeeLines()
+    {
+        return
+        [
+            Line("      ( ("),
+            Line("       ) )"),
+            Line("    ........"),
+            Line("    |      |]"),
+            Line("    \\      /"),
+            Line("     `----'"),
+            Line("Coffee compiled successfully. 0 warnings.", "accent")
+        ];
+    }
+
+    private static IReadOnlyList<TerminalLine> FortuneLines()
+    {
+        string[] fortunes =
+        [
+            "Make it work, make it right, make it fast. In that order.",
+            "The best observability is the one you add before production.",
+            "A small, well-named function beats a clever abstraction.",
+            "There are only two hard things: cache invalidation, naming, and off-by-one errors."
+        ];
+
+        return [Line(fortunes[Random.Shared.Next(fortunes.Length)], "accent")];
+    }
+
+    private static IReadOnlyList<TerminalLine> UnknownCommandLines(string command)
+    {
+        var suggestion = Commands
+            .Select(candidate => new { Command = candidate, Distance = EditDistance(command, candidate) })
+            .OrderBy(candidate => candidate.Distance)
+            .First();
+
+        return suggestion.Distance <= 3
+            ? [Line(command + ": command not found", "error"), Link("Did you mean '" + suggestion.Command + "'?", suggestion.Command)]
+            : [Line(command + ": command not found. Try 'help'.", "error")];
+    }
+
+    private static int EditDistance(string left, string right)
+    {
+        var previous = Enumerable.Range(0, right.Length + 1).ToArray();
+
+        for (var i = 1; i <= left.Length; i++)
+        {
+            var current = new int[right.Length + 1];
+            current[0] = i;
+
+            for (var j = 1; j <= right.Length; j++)
+            {
+                var cost = left[i - 1] == right[j - 1] ? 0 : 1;
+                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost);
+            }
+
+            previous = current;
+        }
+
+        return previous[right.Length];
+    }
+
+    private static TerminalLine Line(string text, string tone = "")
+    {
+        return new TerminalLine(text, tone, string.Empty, string.Empty);
+    }
+
+    private static TerminalLine Link(string text, string command)
+    {
+        return new TerminalLine(text, "accent", command, string.Empty);
+    }
+
+    private static TerminalLine External(string text, string url)
+    {
+        return new TerminalLine(text, "accent", string.Empty, url);
+    }
+
+    public sealed record HistoryEntry(string Command, string Path, List<TerminalLine> Lines);
+    public sealed record TerminalLine(string Text, string Tone, string Command, string Url);
+
+    public sealed class TerminalSession
+    {
+        public List<HistoryEntry> Entries { get; set; } = [];
+        public List<string> CommandHistory { get; set; } = [];
+        public string Input { get; set; } = string.Empty;
+        public string Theme { get; set; } = "theme-green";
+        public DateTimeOffset Started { get; set; } = DateTimeOffset.Now;
+    }
+}

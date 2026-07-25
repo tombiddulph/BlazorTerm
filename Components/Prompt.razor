@@ -1,0 +1,11 @@
+<span class="prompt" aria-hidden="true">
+    <span class="power-segment context-segment"><b>&gt;_</b> @TerminalContent.Owner@@@TerminalContent.Host</span>
+    <span class="power-segment path-segment">~/ @Path.TrimStart('~', '/')</span>
+    <span class="power-segment git-segment">git:main</span>
+    <span class="prompt-symbol">❯</span>
+</span>
+
+@code {
+    [Parameter]
+    public string Path { get; set; } = "~";
+}
