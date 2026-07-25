@@ -40,6 +40,16 @@ dotnet run
 
 Open the URL shown in the terminal. The project uses Blazor Interactive Server rendering, so WebSocket support is required when hosting it behind a proxy.
 
+## Container
+
+Commits to `main` publish a container image to GitHub Container Registry. Pull and run the latest image with:
+
+```shell
+docker run --rm -p 8080:8080 ghcr.io/tombiddulph/blazorterm:latest
+```
+
+Pull requests build the image without publishing it. Version tags matching `v*` also produce matching container tags.
+
 ## Configuration
 
 Personal content, project details, and external links are defined in `TerminalContent.cs`. Terminal behavior is implemented in `Components/Pages/Home.razor`, with browser-side keyboard handling in `wwwroot/terminal.js`.
