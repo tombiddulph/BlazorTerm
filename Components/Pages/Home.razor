@@ -4,7 +4,7 @@
 
 <PageTitle>Terminal / Home</PageTitle>
 
-<main class="site-shell @Theme" @onclick="FocusTerminal">
+<main class="site-shell @Theme">
     <section class="terminal-window" aria-label="Interactive personal terminal">
         <header class="iterm-header">
             <div class="traffic-lights" aria-hidden="true">
@@ -55,7 +55,7 @@
                     </div>
                 }
 
-                <div class="prompt-row active-prompt">
+                <label class="prompt-row active-prompt" for="terminal-input">
                     <Prompt Path="@_path" />
                     <input id="terminal-input"
                            class="command-input"
@@ -67,10 +67,12 @@
                            data-project-completions="@string.Join(',', TerminalContent.Projects.Select(project => project.Slug))"
                            autocomplete="off"
                            autocapitalize="off"
+                           enterkeyhint="send"
+                           inputmode="text"
                            spellcheck="false"
                            aria-label="Terminal command" />
                     <span class="cursor" aria-hidden="true"></span>
-                </div>
+                </label>
             </div>
         </div>
 
@@ -173,11 +175,6 @@
     {
         Execute(command);
         await RequestFocus();
-    }
-
-    private Task FocusTerminal()
-    {
-        return JS.InvokeVoidAsync("terminalUi.focus", "terminal-input").AsTask();
     }
 
     private Task RequestFocus()

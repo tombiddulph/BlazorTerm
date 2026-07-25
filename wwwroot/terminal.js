@@ -26,6 +26,18 @@ document.addEventListener("keydown", function (event) {
     }
 });
 
+// Mobile browsers only open the software keyboard when focus occurs directly
+// inside the user's gesture, not after a Blazor Server round trip.
+document.addEventListener("pointerdown", function (event) {
+    if (!event.target.closest(".terminal-window") ||
+        event.target.closest("a, button, input, dialog")) {
+        return;
+    }
+
+    const input = document.getElementById("terminal-input");
+    if (input) input.focus({ preventScroll: true });
+}, true);
+
 function completeInput(input) {
     const value = input.value;
     const lastSpace = value.lastIndexOf(" ");
