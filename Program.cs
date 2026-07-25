@@ -23,6 +23,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapGet("/healthz", () => Results.NoContent());
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

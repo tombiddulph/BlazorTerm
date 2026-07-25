@@ -4,6 +4,7 @@
 .vs
 .vscode
 .idea
+.local
 **/bin
 **/obj
 **/TestResults
