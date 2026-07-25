@@ -88,7 +88,7 @@
 @code {
     private static readonly string[] Commands =
     [
-        "help", "neofetch", "man", "about", "resume", "stack", "timeline", "status",
+        "help", "neofetch", "man", "about", "resume", "stack", "hosting", "timeline", "status",
         "experience", "education", "skills", "projects", "project", "contributions",
         "contact", "github", "linkedin", "open", "history", "ls", "cat", "pwd",
         "whoami", "date", "clear", "theme", "coffee", "fortune", "sudo"
@@ -218,6 +218,7 @@
                     Link("about       A short introduction", "about"),
                     Link("resume      Terminal-formatted CV", "resume"),
                     Link("stack       Technologies I work with", "stack"),
+                    Link("hosting     How this site is self-hosted", "hosting"),
                     Link("timeline    Career history at a glance", "timeline"),
                     Link("experience  My professional history", "experience"),
                     Link("education   Degree and university", "education"),
@@ -246,6 +247,7 @@
             case "experience":
             case "education":
             case "skills":
+            case "hosting":
                 return ReadFile(command + ".txt");
             case "projects":
                 return ProjectLines();

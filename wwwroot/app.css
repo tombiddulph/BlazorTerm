@@ -367,8 +367,22 @@ kbd {
 
     .power-segment {
         font-size: 0.62rem;
-        padding-left: 0.45rem;
-        padding-right: 0.55rem;
+        height: 1.7rem;
+        padding-left: 0.55rem;
+        padding-right: 0.7rem;
+    }
+
+    .path-segment,
+    .git-segment {
+        padding-left: 1.05rem;
+    }
+
+    .prompt {
+        margin-right: 0.35rem;
+    }
+
+    .prompt-symbol {
+        margin-left: 0.8rem;
     }
 
     .context-segment b,

@@ -8,4 +8,10 @@
     <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="BlazorTerm.Tests/**/*.cs" />
+    <Content Remove="BlazorTerm.Tests/**" />
+    <None Remove="BlazorTerm.Tests/**" />
+  </ItemGroup>
+
 </Project>

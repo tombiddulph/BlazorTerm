@@ -122,6 +122,29 @@ public static class TerminalContent
                 "Azure          Cloud and distributed messaging",
                 "Infrastructure Proxmox, Kubernetes, and self-hosting"
             },
+            ["hosting.txt"] = new[]
+            {
+                "HOSTING",
+                "This site is self-hosted on a Talos Linux Kubernetes cluster running",
+                "across my Proxmox homelab.",
+                "",
+                "GitHub Actions",
+                "      |  build + test",
+                "      v",
+                "GitHub Container Registry",
+                "      |  container image",
+                "      v",
+                "Talos Kubernetes on Proxmox",
+                "      |  outbound tunnel",
+                "      v",
+                "Cloudflare Tunnel + DNS + TLS",
+                "      |",
+                "      v",
+                "terminal.tommyb.dev",
+                "",
+                "The application runs as a non-root .NET 10 container with Kubernetes",
+                "health probes, resource limits, and no inbound homelab ports exposed."
+            },
             ["contact.txt"] = new[]
             {
                 "CONTACT",
