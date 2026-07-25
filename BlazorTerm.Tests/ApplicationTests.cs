@@ -1,15 +1,20 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace BlazorTerm.Tests;
 
 public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
+    private readonly WebApplicationFactory<Program> _factory;
 
     public ApplicationTests(WebApplicationFactory<Program> factory)
     {
+        _factory = factory;
         _client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
@@ -62,6 +67,25 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         var response = await _client.GetAsync("/healthz");
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnknownRoute_ReturnsTerminalNotFoundPage()
+    {
+        var response = await _client.GetAsync("/definitely-not-a-route");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("No such file or directory", html);
+        Assert.Contains("/definitely-not-a-route", html);
+        Assert.Contains("href=\"/\"", html);
+    }
+
+    [Fact]
+    public void OpenTelemetry_RegistersTraceAndMetricProviders()
+    {
+        Assert.NotNull(_factory.Services.GetService<TracerProvider>());
+        Assert.NotNull(_factory.Services.GetService<MeterProvider>());
     }
 
     [Fact]

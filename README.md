@@ -11,6 +11,7 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - GitHub projects and verified open-source contributions
 - Terminal-formatted resume, career timeline, and technology stack
 - Custom reconnect and circuit-resume experience
+- OpenTelemetry request tracing and runtime/application metrics over OTLP
 - Mobile layout and reduced-motion support
 
 ## Commands

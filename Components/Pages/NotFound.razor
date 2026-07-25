@@ -1,0 +1,47 @@
+@page "/not-found"
+@using Microsoft.AspNetCore.Diagnostics
+
+<PageTitle>404 / Not Found</PageTitle>
+
+<main class="site-shell theme-green">
+    <section class="terminal-window" aria-label="Page not found">
+        <header class="iterm-header">
+            <div class="traffic-lights" aria-hidden="true">
+                <span class="close"></span>
+                <span class="minimize"></span>
+                <span class="maximize"></span>
+            </div>
+            <div class="terminal-tab active">
+                <span class="tab-symbol">&gt;_</span>
+                <span>@TerminalContent.Owner@@@TerminalContent.Host: ~</span>
+            </div>
+            <div class="header-title">404. zsh</div>
+        </header>
+
+        <div class="not-found-terminal">
+            <div class="prompt-row executed">
+                <Prompt Path="~" />
+                <span class="executed-command">cat @_requestedPath</span>
+            </div>
+            <p class="not-found-error">cat: @_requestedPath: No such file or directory</p>
+            <p class="not-found-code">HTTP 404 / route not found</p>
+            <a class="not-found-link" href="/">
+                <span aria-hidden="true">❯</span> cd ~
+            </a>
+        </div>
+    </section>
+</main>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string _requestedPath = "/not-found";
+
+    protected override void OnInitialized()
+    {
+        _requestedPath = HttpContext?.Features.Get<IStatusCodeReExecuteFeature>()?.OriginalPath
+            ?? HttpContext?.Request.Path.Value
+            ?? "/not-found";
+    }
+}

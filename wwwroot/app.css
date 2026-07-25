@@ -316,6 +316,34 @@ button {
     padding: 0 1rem;
 }
 
+.not-found-terminal {
+    font-size: clamp(0.78rem, 1.2vw, 0.95rem);
+    line-height: 1.7;
+    padding: clamp(2rem, 7vw, 6rem);
+}
+
+.not-found-error {
+    color: #ff757f;
+    margin: 1.25rem 0 0 1rem;
+}
+
+.not-found-code {
+    color: #73798b;
+    margin: 0 0 2rem 1rem;
+}
+
+.not-found-link {
+    color: #c3e88d;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.not-found-link:hover,
+.not-found-link:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
 kbd {
     color: #aeb4c2;
     font-family: inherit;
