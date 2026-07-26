@@ -37,6 +37,25 @@ rule for the hostname: caching `/` can distribute per-response Blazor state.
 After enabling the rule, verify the static routes return `CF-Cache-Status: HIT`
 on the second request while `/` remains `DYNAMIC`.
 
+## Apex Domain
+
+Point `tommyb.dev` and, if used, `www.tommyb.dev` at the same Cloudflare Tunnel.
+The application permanently redirects `/` on those hosts to `/resume`, while
+keeping `/` interactive on `terminal.tommyb.dev`. Both the redirect and resume
+send CDN cache policies. The resume navigation links back to the terminal with
+an absolute URL.
+
+Create a second Cache Rule for the apex response:
+
+```text
+((http.host eq "tommyb.dev" or http.host eq "www.tommyb.dev") and
+  http.request.uri.path eq "/")
+```
+
+Set **Cache eligibility** to **Eligible for cache** and retain the origin TTLs.
+Confirm the second apex request returns `CF-Cache-Status: HIT` and that the
+terminal link opens `https://terminal.tommyb.dev`.
+
 The private Talos deployment already runs one application replica with readiness
 and liveness probes, resource limits, non-root execution, and two Cloudflare
 Tunnel connectors. Scaling the application above one replica requires session

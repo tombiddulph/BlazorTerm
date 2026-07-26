@@ -19,6 +19,7 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - ANSI resume output for terminal HTTP clients and an `/llms.txt` endpoint
 - Live circuit, uptime, and request-latency telemetry in the terminal
 - CDN-ready cache policies for circuit-free portfolio routes
+- Host-aware static resume output for the `tommyb.dev` apex domain
 
 ## Commands
 

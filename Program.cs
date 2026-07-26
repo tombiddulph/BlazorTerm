@@ -61,6 +61,19 @@ if (!app.Environment.IsDevelopment())
 
 app.Use(async (context, next) =>
 {
+    if (IsApexResumeRequest(context.Request))
+    {
+        context.Response.Headers.CacheControl = "public, max-age=300, stale-if-error=604800";
+        context.Response.Headers["CDN-Cache-Control"] = "public, max-age=86400, stale-if-error=604800";
+        context.Response.Redirect("/resume", permanent: true, preserveMethod: true);
+        return;
+    }
+
+    await next(context);
+});
+
+app.Use(async (context, next) =>
+{
     var startedAt = Stopwatch.GetTimestamp();
     try
     {
@@ -142,6 +155,13 @@ static bool IsCdnCacheablePath(PathString path)
         || path == "/llms.txt"
         || path == "/sitemap.xml"
         || path.StartsWithSegments("/projects");
+}
+
+static bool IsApexResumeRequest(HttpRequest request)
+{
+    return request.Path == "/"
+        && (request.Host.Host.Equals("tommyb.dev", StringComparison.OrdinalIgnoreCase)
+            || request.Host.Host.Equals("www.tommyb.dev", StringComparison.OrdinalIgnoreCase));
 }
 
 public partial class Program;

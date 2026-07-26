@@ -218,6 +218,35 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.False(response.Headers.Contains("CDN-Cache-Control"));
     }
 
+    [Theory]
+    [InlineData("tommyb.dev")]
+    [InlineData("www.tommyb.dev")]
+    public async Task ApexDomainRoot_RedirectsToStaticResume(string host)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Host = host;
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.PermanentRedirect, response.StatusCode);
+        Assert.Equal("/resume", response.Headers.Location?.OriginalString);
+        Assert.True(response.Headers.CacheControl?.Public);
+        Assert.True(response.Headers.Contains("CDN-Cache-Control"));
+
+        using var resumeRequest = new HttpRequestMessage(HttpMethod.Get, "/resume");
+        resumeRequest.Headers.Host = host;
+        var resumeResponse = await _client.SendAsync(resumeRequest);
+        var html = await resumeResponse.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, resumeResponse.StatusCode);
+        Assert.Contains("<main class=\"static-page\"", html);
+        Assert.Contains("Experience", html);
+        Assert.Contains($"href=\"{TerminalContent.SiteUrl}\"", html);
+        Assert.DoesNotContain("\"type\":\"server\"", html);
+        Assert.True(resumeResponse.Headers.CacheControl?.Public);
+        Assert.True(resumeResponse.Headers.Contains("CDN-Cache-Control"));
+    }
+
     [Fact]
     public async Task HomePage_ReferencesAvailableBlazorRuntime()
     {
