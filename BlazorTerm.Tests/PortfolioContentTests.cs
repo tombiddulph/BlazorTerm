@@ -43,7 +43,7 @@ public sealed class PortfolioContentTests
     {
         var content = TerminalFormatter.FileNames
             .SelectMany(TerminalFormatter.ReadFile)
-            .Select(line => line.Text);
+            .Select(line => line.ToPlainText());
 
         Assert.DoesNotContain(content, line => line.Contains("you@example.com", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(content, line => line.Contains("your-handle", StringComparison.OrdinalIgnoreCase));
@@ -52,7 +52,7 @@ public sealed class PortfolioContentTests
     [Fact]
     public void HostingContent_DescribesThePublicDeploymentStack()
     {
-        var hosting = TerminalFormatter.ReadFile("hosting.txt").Select(line => line.Text);
+        var hosting = TerminalFormatter.ReadFile("hosting.txt").Select(line => line.ToPlainText());
 
         Assert.Contains(hosting, line => line.Contains("Proxmox"));
         Assert.Contains(hosting, line => line.Contains("Talos Kubernetes"));
@@ -95,12 +95,13 @@ public sealed class PortfolioContentTests
         {
             Input = "projects",
             Theme = "theme-amber",
+            CurrentPath = "~/projects",
             Entries =
             [
                 new Home.HistoryEntry(
                     "resume",
                     "~",
-                    [TerminalFormatter.Line("TOM BIDDULPH", "heading")])
+                    new CommandResult([TerminalFormatter.Line("TOM BIDDULPH", "heading")]))
             ],
             CommandHistory = ["help", "resume"]
         };
@@ -110,11 +111,15 @@ public sealed class PortfolioContentTests
         Assert.NotNull(restored);
         Assert.Equal(session.Input, restored.Input);
         Assert.Equal(session.Theme, restored.Theme);
+        Assert.Equal(session.CurrentPath, restored.CurrentPath);
         Assert.Equal(session.CommandHistory, restored.CommandHistory);
         Assert.Single(restored.Entries);
         Assert.Equal(session.Entries[0].Command, restored.Entries[0].Command);
         Assert.Equal(session.Entries[0].Path, restored.Entries[0].Path);
-        Assert.Equal(session.Entries[0].Lines, restored.Entries[0].Lines);
+        Assert.Equal(session.Entries[0].Result.ExitCode, restored.Entries[0].Result.ExitCode);
+        Assert.Equal(
+            session.Entries[0].Result.Lines.Select(line => (line.GetType(), line.Style, line.ToPlainText())),
+            restored.Entries[0].Result.Lines.Select(line => (line.GetType(), line.Style, line.ToPlainText())));
     }
 
     [Fact]

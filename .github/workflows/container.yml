@@ -85,6 +85,9 @@ jobs:
             org.opencontainers.image.title=BlazorTerm
             org.opencontainers.image.description=Interactive iTerm-inspired portfolio built with Blazor and .NET 10
 
+      - name: Set build timestamp
+        run: echo "BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
       - name: Build and publish
         uses: docker/build-push-action@v7
         with:
@@ -92,6 +95,9 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SOURCE_REVISION=${{ github.sha }}
+            BUILD_TIMESTAMP=${{ env.BUILD_TIMESTAMP }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: mode=max

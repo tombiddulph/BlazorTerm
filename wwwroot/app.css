@@ -373,6 +373,39 @@ button {
     color: #ff806d;
 }
 
+.match-highlight {
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    font-weight: 700;
+}
+
+.output-line.trace-line {
+    display: grid;
+    gap: 1ch;
+    grid-template-columns: minmax(18ch, 1fr) auto 8ch;
+    white-space: pre;
+}
+
+.trace-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trace-bar {
+    color: var(--accent);
+}
+
+.trace-duration {
+    color: var(--fg-dim);
+    text-align: right;
+}
+
+.output-line.trace-attribute,
+.output-line.trace-summary {
+    color: var(--fg-dim);
+}
+
 .command-input {
     background: transparent;
     border: 0;
@@ -864,6 +897,21 @@ kbd {
 
     .help-description {
         padding-left: 1rem;
+    }
+
+    .output-line.trace-line {
+        gap: 0.5ch;
+        grid-template-columns: minmax(0, 1fr) auto;
+        white-space: pre-wrap;
+    }
+
+    .trace-label {
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .trace-bar {
+        display: none;
     }
 }
 

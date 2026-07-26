@@ -1,0 +1,39 @@
+@foreach (var segment in Segments())
+{
+    @if (segment.Highlighted)
+    {
+        <mark class="match-highlight">@segment.Text</mark>
+    }
+    else
+    {
+        @segment.Text
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public IReadOnlyList<TextRange> Highlights { get; set; } = [];
+
+    private IEnumerable<TextSegment> Segments()
+    {
+        var position = 0;
+        foreach (var range in Highlights.OrderBy(range => range.Start))
+        {
+            var start = Math.Clamp(range.Start, position, Text.Length);
+            var end = Math.Clamp(range.Start + range.Length, start, Text.Length);
+            if (start > position)
+                yield return new(Text[position..start], false);
+            if (end > start)
+                yield return new(Text[start..end], true);
+            position = end;
+        }
+
+        if (position < Text.Length)
+            yield return new(Text[position..], false);
+    }
+
+    private sealed record TextSegment(string Text, bool Highlighted);
+}

@@ -1,4 +1,8 @@
 window.terminalUi = {
+    clear: function (inputId) {
+        const input = document.getElementById(inputId);
+        if (input) input.value = "";
+    },
     focus: function (inputId) {
         const input = document.getElementById(inputId);
         if (input) input.focus({ preventScroll: true });
@@ -6,7 +10,9 @@ window.terminalUi = {
     focusAndScroll: function (inputId, outputId) {
         const input = document.getElementById(inputId);
         const output = document.getElementById(outputId);
-        if (input) input.focus({ preventScroll: true });
+        if (input) {
+            input.focus({ preventScroll: true });
+        }
         if (output) output.scrollTop = output.scrollHeight;
     }
 };
@@ -29,6 +35,7 @@ document.addEventListener("keydown", function (event) {
 
     if (event.key === "Enter") {
         event.target.dispatchEvent(new Event("change", { bubbles: true }));
+        event.target.value = "";
         return;
     }
 
@@ -57,13 +64,27 @@ document.addEventListener("pointerdown", function (event) {
 
 function completeInput(input) {
     const value = input.value;
-    const lastSpace = value.lastIndexOf(" ");
-    const prefix = value.substring(lastSpace + 1);
-    const command = value.trimStart().split(" ")[0].toLowerCase();
+    const pipeIndex = findLastPipeline(value);
+    const segment = value.substring(pipeIndex + 1);
+    const trimmedSegment = segment.trimStart();
+    const leadingWhitespace = segment.length - trimmedSegment.length;
+    const lastSpace = Math.max(trimmedSegment.lastIndexOf(" "), trimmedSegment.lastIndexOf("\t"));
+    const prefix = trimmedSegment.substring(lastSpace + 1);
+    const command = trimmedSegment.split(/\s+/)[0].toLowerCase();
     const projectCommand = command === "project" || command === "open";
-    const dataName = lastSpace === -1
-        ? "commandCompletions"
-        : projectCommand ? "projectCompletions" : "fileCompletions";
+    const pathCommand = command === "cat" || command === "ls" || command === "tree";
+    let dataName;
+    if (lastSpace === -1) {
+        dataName = pipeIndex === -1 ? "commandCompletions" : "filterCompletions";
+    } else if (projectCommand) {
+        dataName = "projectCompletions";
+    } else if (command === "cd") {
+        dataName = "directoryCompletions";
+    } else if (pathCommand) {
+        dataName = "pathCompletions";
+    } else if (command === "trace") {
+        dataName = "commandCompletions";
+    }
     const options = (input.dataset[dataName] || "").split(",").filter(Boolean);
     const matches = options.filter(option => option.toLowerCase().startsWith(prefix.toLowerCase()));
 
@@ -81,8 +102,32 @@ function completeInput(input) {
         });
     }
 
-    const suffix = matches.length === 1 && lastSpace === -1 ? " " : "";
-    input.value = value.substring(0, lastSpace + 1) + completion + suffix;
+    const suffix = matches.length === 1 && !completion.endsWith("/") ? " " : "";
+    const replacementStart = pipeIndex + leadingWhitespace + lastSpace + 2;
+    input.value = value.substring(0, replacementStart) + completion + suffix;
+}
+
+function findLastPipeline(value) {
+    let quote = null;
+    let escaped = false;
+    let lastPipe = -1;
+
+    for (let index = 0; index < value.length; index++) {
+        const character = value[index];
+        if (escaped) {
+            escaped = false;
+        } else if (character === "\\") {
+            escaped = true;
+        } else if (quote) {
+            if (character === quote) quote = null;
+        } else if (character === "'" || character === '"') {
+            quote = character;
+        } else if (character === "|") {
+            lastPipe = index;
+        }
+    }
+
+    return lastPipe;
 }
 
 document.addEventListener("visibilitychange", async function () {

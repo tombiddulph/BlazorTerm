@@ -8,7 +8,7 @@ public static class TerminalFormatter
         "skills.txt", "hosting.txt", "contact.txt"
     ];
 
-    public static IReadOnlyList<TerminalLine> ReadFile(string fileName)
+    public static IReadOnlyList<OutputLine> ReadFile(string fileName)
     {
         return fileName.ToLowerInvariant() switch
         {
@@ -36,9 +36,9 @@ public static class TerminalFormatter
         };
     }
 
-    public static IReadOnlyList<TerminalLine> Resume()
+    public static IReadOnlyList<OutputLine> Resume()
     {
-        List<TerminalLine> lines =
+        List<OutputLine> lines =
         [
             Line(TerminalContent.DisplayName.ToUpperInvariant(), "heading"),
             Line($"{TerminalContent.Profile.Role} / C# / Backend / Fintech"),
@@ -62,7 +62,7 @@ public static class TerminalFormatter
         return lines;
     }
 
-    public static IReadOnlyList<TerminalLine> Stack()
+    public static IReadOnlyList<OutputLine> Stack()
     {
         return
         [
@@ -71,9 +71,9 @@ public static class TerminalFormatter
         ];
     }
 
-    public static IReadOnlyList<TerminalLine> Timeline()
+    public static IReadOnlyList<OutputLine> Timeline()
     {
-        List<TerminalLine> lines = [Line("CAREER TIMELINE", "heading")];
+        List<OutputLine> lines = [Line("CAREER TIMELINE", "heading")];
         foreach (var item in TerminalContent.Timeline)
         {
             lines.Add(Line($"{item.When.Year}  [{item.Title}]  {item.Detail}"));
@@ -84,9 +84,9 @@ public static class TerminalFormatter
         return lines;
     }
 
-    public static IReadOnlyList<TerminalLine> Projects()
+    public static IReadOnlyList<OutputLine> Projects()
     {
-        List<TerminalLine> lines = [Line("SELECTED PROJECTS", "heading")];
+        List<OutputLine> lines = [Line("SELECTED PROJECTS", "heading")];
         foreach (var project in TerminalContent.Projects)
         {
             lines.Add(WebLink($"{project.Title}  [{string.Join(" + ", project.Stack)}]", $"/projects/{project.Slug}"));
@@ -99,9 +99,9 @@ public static class TerminalFormatter
         return lines;
     }
 
-    public static IReadOnlyList<TerminalLine> ProjectDetail(Project project)
+    public static IReadOnlyList<OutputLine> ProjectDetail(Project project)
     {
-        List<TerminalLine> lines =
+        List<OutputLine> lines =
         [
             Line(project.Title.ToUpperInvariant(), "heading"),
             Line(string.Join(" + ", project.Stack)),
@@ -126,7 +126,7 @@ public static class TerminalFormatter
         return lines;
     }
 
-    public static IReadOnlyList<TerminalLine> Contact()
+    public static IReadOnlyList<OutputLine> Contact()
     {
         return
         [
@@ -135,7 +135,7 @@ public static class TerminalFormatter
         ];
     }
 
-    private static IReadOnlyList<TerminalLine> Experience()
+    private static IReadOnlyList<OutputLine> Experience()
     {
         return
         [
@@ -144,7 +144,7 @@ public static class TerminalFormatter
         ];
     }
 
-    private static IReadOnlyList<TerminalLine> Education()
+    private static IReadOnlyList<OutputLine> Education()
     {
         return
         [
@@ -157,9 +157,9 @@ public static class TerminalFormatter
         ];
     }
 
-    private static IReadOnlyList<TerminalLine> Hosting()
+    private static IReadOnlyList<OutputLine> Hosting()
     {
-        List<TerminalLine> lines = [Line("HOSTING", "heading"), Line(TerminalContent.Hosting.Summary), Line(string.Empty)];
+        List<OutputLine> lines = [Line("HOSTING", "heading"), Line(TerminalContent.Hosting.Summary), Line(string.Empty)];
         for (var i = 0; i < TerminalContent.Hosting.Pipeline.Length; i++)
         {
             lines.Add(Line(TerminalContent.Hosting.Pipeline[i]));
@@ -177,16 +177,8 @@ public static class TerminalFormatter
         return entry.To is null ? $"{entry.From.Year} - now" : entry.From.Year == entry.To.Value.Year ? entry.From.Year.ToString() : $"{entry.From.Year} - {entry.To.Value.Year}";
     }
 
-    public static TerminalLine Line(string text, string tone = "") => new(text, tone, string.Empty, string.Empty, false);
-    public static TerminalLine CommandLink(string text, string command) => new(text, "accent", command, string.Empty, false);
-    public static TerminalLine WebLink(string text, string url) => new(text, "accent", string.Empty, url, false);
-    public static TerminalLine External(string text, string url) => new(text, "accent", string.Empty, url, true);
+    public static OutputLine Line(string text, string style = "") => new TextLine(text) { Style = style };
+    public static OutputLine CommandLink(string text, string command) => new LinkLine(text, command, LinkKind.Command) { Style = "accent" };
+    public static OutputLine WebLink(string text, string url) => new LinkLine(text, url, LinkKind.Web) { Style = "accent" };
+    public static OutputLine External(string text, string url) => new LinkLine(text, url, LinkKind.Web, true) { Style = "accent" };
 }
-
-public sealed record TerminalLine(
-    string Text,
-    string Tone,
-    string Command,
-    string Url,
-    bool OpenInNewTab,
-    string Secondary = "");

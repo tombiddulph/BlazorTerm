@@ -29,6 +29,7 @@ var exportTelemetry = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXP
 telemetry.WithTracing(traces =>
 {
     traces
+        .AddSource(TerminalActivities.SourceName)
         .AddAspNetCoreInstrumentation(options =>
             options.Filter = context => !context.Request.Path.StartsWithSegments("/healthz"))
         .AddHttpClientInstrumentation();

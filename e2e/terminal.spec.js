@@ -16,6 +16,7 @@ test('accepts keyboard input and executes a command', async ({ page }) => {
   await page.keyboard.press('Enter');
 
   await expect(page.locator('#terminal-output')).toContainText('PROFILE');
+  await expect(input).toHaveValue('');
   expect(browserErrors).toEqual([]);
 });
 
@@ -27,20 +28,27 @@ test('preserves terminal output across circuit pause and resume', async ({ page 
   await expect(input).toHaveValue('about');
   await input.press('Enter');
   await expect(page.locator('#terminal-output')).toContainText('ABOUT');
+  await input.pressSequentially('cd projects', { delay: 0 });
+  await input.press('Enter');
+  await expect(page.locator('.active-prompt .path-segment')).toHaveText('~/projects');
 
   await page.evaluate(() => window.Blazor.pauseCircuit());
   await page.evaluate(() => window.Blazor.resumeCircuit());
 
   await expect(page.locator('#terminal-output')).toContainText('ABOUT');
+  await expect(page.locator('.active-prompt .path-segment')).toHaveText('~/projects');
   await expect(input).toBeEditable();
 });
 
 test('runs suggested commands without typing', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#terminal-input')).toBeFocused();
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('unfinished draft', { delay: 0 });
   await page.getByRole('button', { name: 'projects', exact: true }).click();
 
   await expect(page.locator('#terminal-output')).toContainText('SELECTED PROJECTS');
+  await expect(input).toHaveValue('');
 });
 
 test('presents grouped command navigation', async ({ page }) => {
@@ -65,6 +73,21 @@ test('completes and executes a command with the keyboard', async ({ page }) => {
   await expect(page.locator('#terminal-output')).toContainText('EXPERIENCE');
 });
 
+test('completes filters and highlights grep matches', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('resume | gr', { delay: 0 });
+  await input.press('Tab');
+  await expect(input).toHaveValue('resume | grep ');
+  await input.pressSequentially('-i azure');
+  await input.press('Enter');
+
+  const latestEntry = page.locator('.history-entry').filter({ hasText: 'resume | grep -i azure' });
+  await expect(latestEntry).toContainText('Azure');
+  await expect(latestEntry.locator('.match-highlight').first()).toHaveText(/azure/i);
+});
+
 test('opens the static resume with the gui command', async ({ page }) => {
   await page.goto('/');
   const input = page.locator('#terminal-input');
@@ -87,6 +110,46 @@ test('shows live application telemetry', async ({ page }) => {
   await expect(output).toContainText('LIVE TELEMETRY');
   await expect(output).toContainText(/circuits\s+\d+ active/);
   await expect(output).toContainText(/last request\s+\d+\.\d ms/);
+});
+
+test('renders a responsive command trace', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await input.pressSequentially('trace resume', { delay: 0 });
+  await input.press('Enter');
+
+  const latestEntry = page.locator('.history-entry').filter({ hasText: 'trace resume' });
+  await expect(latestEntry).toContainText('TRACE');
+  await expect(latestEntry).toContainText('command.resume');
+  await expect(latestEntry).toContainText('content.load');
+  await expect(latestEntry.locator('.trace-bar').first()).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(latestEntry.locator('.trace-bar').first()).toBeHidden();
+  await expect(latestEntry.locator('.trace-duration').first()).toBeVisible();
+});
+
+test('navigates the virtual filesystem and completes nested paths', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+
+  await input.pressSequentially('cd projects', { delay: 0 });
+  await input.press('Enter');
+  await expect(page.locator('.active-prompt .path-segment')).toHaveText('~/projects');
+
+  await input.pressSequentially('pwd', { delay: 0 });
+  await input.press('Enter');
+  await expect(page.locator('.history-entry').filter({ hasText: 'pwd' })).toContainText('/home/tom/projects');
+
+  await input.pressSequentially('cd ~', { delay: 0 });
+  await input.press('Enter');
+  await expect(page.locator('.active-prompt .path-segment')).toHaveText('~');
+  await input.pressSequentially('cat projects/service-bus-explorer/REA', { delay: 0 });
+  await input.press('Tab');
+  await expect(input).toHaveValue('cat projects/service-bus-explorer/README.md ');
+  await input.press('Enter');
+  await expect(page.locator('.history-entry').filter({ hasText: 'cat projects/service-bus-explorer/README.md' })).toContainText('SERVICE BUS EMULATOR EXPLORER');
 });
 
 test('keeps the terminal contained and aligned on an ultrawide viewport', async ({ page }) => {

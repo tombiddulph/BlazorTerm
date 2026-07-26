@@ -1,8 +1,10 @@
 @page "/"
 @rendermode InteractiveServer
+@using System.Diagnostics
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject TerminalTelemetry Telemetry
+@inject IConfiguration Configuration
 
 <PageTitle>@TerminalContent.PageTitle</PageTitle>
 <HeadContent>
@@ -30,7 +32,7 @@
             </div>
             <div class="terminal-tab active">
                 <span class="tab-symbol">&gt;_</span>
-                <span>@TerminalContent.Owner@@@TerminalContent.Host: ~</span>
+                <span>@TerminalContent.Owner@@@TerminalContent.Host: @CurrentPath</span>
             </div>
             <button class="new-tab" type="button" aria-label="New tab">+</button>
             <div class="header-title">1. zsh</div>
@@ -52,44 +54,59 @@
                                 <Prompt Path="@entry.Path" />
                                 <span class="executed-command">@entry.Command</span>
                             </div>
-                            @foreach (var line in entry.Lines)
+                            @foreach (var line in entry.Result.Lines)
                             {
-                                @if (line.Tone == "neofetch")
+                                @if (line is RawLine { Kind: RawLineKind.Neofetch })
                                 {
                                     <NeofetchOutput />
                                 }
-                                else if (line.Tone.StartsWith("help-row", StringComparison.Ordinal))
+                                else if (line is HelpLine helpLine)
                                 {
-                                    <div class="output-line @line.Tone">
-                                        @if (!string.IsNullOrEmpty(line.Command))
+                                    <div class="output-line @line.Style">
+                                        @if (helpLine.Kind == LinkKind.Command)
                                         {
-                                            <button class="output-command help-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
+                                            <button class="output-command help-command" @onclick="() => RunShortcut(helpLine.Target)"><OutputText Text="@helpLine.Label" Highlights="@helpLine.Highlights" /></button>
                                         }
-                                        else if (!string.IsNullOrEmpty(line.Url))
+                                        else if (helpLine.Kind == LinkKind.Web)
                                         {
-                                            <a class="output-link help-command" href="@line.Url" target="_blank" rel="noopener noreferrer">@line.Text</a>
+                                            <a class="output-link help-command" href="@helpLine.Target" target="_blank" rel="noopener noreferrer"><OutputText Text="@helpLine.Label" Highlights="@helpLine.Highlights" /></a>
                                         }
                                         else
                                         {
-                                            <span class="help-command">@line.Text</span>
+                                            <span class="help-command"><OutputText Text="@helpLine.Label" Highlights="@helpLine.Highlights" /></span>
                                         }
-                                        <span class="help-description">@line.Secondary</span>
+                                        <span class="help-description"><OutputText Text="@helpLine.Description" Highlights="@helpLine.DescriptionHighlights" /></span>
+                                    </div>
+                                }
+                                else if (line is TraceLine traceLine)
+                                {
+                                    <div class="output-line @line.Style">
+                                        @if (traceLine.Highlights.Count > 0)
+                                        {
+                                            <OutputText Text="@traceLine.DisplayText" Highlights="@traceLine.Highlights" />
+                                        }
+                                        else
+                                        {
+                                            <span class="trace-label">@traceLine.Label</span>
+                                            <span class="trace-bar" aria-hidden="true">@traceLine.Bar</span>
+                                            <span class="trace-duration">@traceLine.DurationText</span>
+                                        }
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="output-line @line.Tone">
-                                    @if (!string.IsNullOrEmpty(line.Command))
+                                    <div class="output-line @line.Style">
+                                    @if (line is LinkLine { Kind: LinkKind.Command } commandLink)
                                     {
-                                        <button class="output-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
+                                        <button class="output-command" @onclick="() => RunShortcut(commandLink.Target)"><OutputText Text="@commandLink.Label" Highlights="@commandLink.Highlights" /></button>
                                     }
-                                    else if (!string.IsNullOrEmpty(line.Url))
+                                    else if (line is LinkLine webLink)
                                     {
-                                        <a class="output-link" href="@line.Url" target="@(line.OpenInNewTab ? "_blank" : null)" rel="@(line.OpenInNewTab ? "noopener noreferrer" : null)">@line.Text</a>
+                                        <a class="output-link" href="@webLink.Target" target="@(webLink.OpenInNewTab ? "_blank" : null)" rel="@(webLink.OpenInNewTab ? "noopener noreferrer" : null)"><OutputText Text="@webLink.Label" Highlights="@webLink.Highlights" /></a>
                                     }
                                     else
                                     {
-                                        @line.Text
+                                        <OutputText Text="@line.DisplayText" Highlights="@line.Highlights" />
                                     }
                                     </div>
                                 }
@@ -99,14 +116,16 @@
                 </div>
 
                 <label class="prompt-row active-prompt" for="terminal-input">
-                    <Prompt Path="@_path" />
+                    <Prompt Path="@CurrentPath" />
                     <input id="terminal-input"
                            class="command-input"
                            value="@Input"
                            @onchange="UpdateInput"
                            @onkeydown="HandleKeyDown"
                            data-command-completions="@string.Join(',', Commands)"
-                           data-file-completions="@string.Join(',', TerminalFormatter.FileNames)"
+                           data-filter-completions="@string.Join(',', Pipeline.FilterNames)"
+                           data-path-completions="@string.Join(',', VirtualFileSystem.Completions(CurrentPath))"
+                           data-directory-completions="@string.Join(',', VirtualFileSystem.Completions(CurrentPath, directoriesOnly: true))"
                            data-project-completions="@string.Join(',', TerminalContent.Projects.Select(project => project.Slug))"
                            autocomplete="off"
                            autocapitalize="off"
@@ -129,7 +148,7 @@
             <span><kbd>↑</kbd><kbd>↓</kbd> HISTORY</span>
             <span><kbd>TAB</kbd> COMPLETE</span>
             <span><kbd>CTRL</kbd> + <kbd>L</kbd> CLEAR</span>
-            <span class="footer-location">@TerminalContent.Owner@@@TerminalContent.Host:~</span>
+            <span class="footer-location">@TerminalContent.Owner@@@TerminalContent.Host:@CurrentPath</span>
         </footer>
     </section>
 </div>
@@ -141,8 +160,9 @@
     [
         "help", "neofetch", "man", "about", "resume", "stack", "hosting", "timeline", "status",
         "experience", "education", "skills", "projects", "project", "contributions",
-        "contact", "github", "linkedin", "open", "history", "ls", "cat", "pwd",
-        "whoami", "date", "clear", "theme", "gui", "telemetry", "coffee", "fortune", "sudo"
+        "contact", "github", "linkedin", "open", "history", "ls", "cat", "cd", "pwd", "tree",
+        "whoami", "who", "date", "version", "git", "clear", "theme", "gui", "telemetry", "trace", "coffee", "fortune", "sudo",
+        "grep", "head", "tail", "wc", "sort", "uniq"
     ];
 
     private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact", "telemetry"];
@@ -159,7 +179,8 @@
             ["cls"] = "clear"
         };
 
-    private string _path = "~";
+    private static readonly PipelineExecutor Pipeline = new();
+
     private int _historyIndex;
     private bool _shouldFocus = true;
 
@@ -174,6 +195,7 @@
     private List<string> CommandHistory => Session.CommandHistory;
     private string Input { get => Session.Input; set => Session.Input = value; }
     private string Theme { get => Session.Theme; set => Session.Theme = value; }
+    private string CurrentPath { get => Session.CurrentPath; set => Session.CurrentPath = value; }
     private DateTimeOffset SessionStarted => Session.Started;
     protected override void OnInitialized()
     {
@@ -209,6 +231,7 @@
         {
             Entries.Clear();
             Input = string.Empty;
+            await JS.InvokeVoidAsync("terminalUi.clear", "terminal-input");
             await RequestFocus();
             return;
         }
@@ -238,6 +261,7 @@
     private async Task RunShortcut(string command)
     {
         Execute(command);
+        await JS.InvokeVoidAsync("terminalUi.clear", "terminal-input");
         await RequestFocus();
     }
 
@@ -258,25 +282,110 @@
 
         CommandHistory.Add(fullCommand);
         _historyIndex = CommandHistory.Count;
+        var executionPath = CurrentPath;
 
-        var parts = fullCommand.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var command = parts[0].ToLowerInvariant();
-        command = Aliases.GetValueOrDefault(command, command);
-        var arguments = parts.Skip(1).ToArray();
+        if (!ShellParser.TryParse(fullCommand, out var parsedSegments, out var parseError))
+        {
+            Entries.Add(new(fullCommand, executionPath, new CommandResult([Line(parseError, "error")], 2)));
+            return;
+        }
 
-        if (command == "gui")
+        if (parsedSegments.Count == 0)
+            return;
+
+        var segments = parsedSegments.ToArray();
+        var first = segments[0];
+        segments[0] = first with { Name = Aliases.GetValueOrDefault(first.Name, first.Name) };
+
+        if (segments.Length == 1 && segments[0].Name == "gui")
         {
             Navigation.NavigateTo("/resume");
             return;
         }
 
-        var lines = RunCommand(command, arguments);
+        var result = Pipeline.Execute(
+            segments,
+            command => Commands.Contains(command, StringComparer.OrdinalIgnoreCase)
+                ? new DelegateCommand(invocation => RunCommand(command, invocation.Arguments.ToArray()))
+                : null);
 
-        if (command != "clear")
-            Entries.Add(new HistoryEntry(fullCommand, _path, lines.ToList()));
+        if (segments[0].Name != "clear")
+            Entries.Add(new HistoryEntry(fullCommand, executionPath, result));
     }
 
-    private IReadOnlyList<TerminalLine> RunCommand(string command, string[] arguments)
+    private CommandResult RunCommand(string command, string[] arguments)
+    {
+        if (command == "trace")
+            return TraceCommand(arguments);
+
+        using var commandActivity = TerminalActivities.Source.StartActivity("command.execute");
+        commandActivity?.SetTag("command.name", command);
+        commandActivity?.SetTag("command.argument.count", arguments.Length);
+
+        IReadOnlyList<OutputLine> lines;
+        using (var contentActivity = TerminalActivities.Source.StartActivity("content.load"))
+        {
+            contentActivity?.SetTag("content.command", command);
+            lines = RunCommandLines(command, arguments);
+            contentActivity?.SetTag("content.line.count", lines.Count);
+        }
+
+        using var formatActivity = TerminalActivities.Source.StartActivity("output.format");
+        var exitCode = lines.Any(line => line.Style == "error") ? 1 : 0;
+        formatActivity?.SetTag("output.line.count", lines.Count);
+        formatActivity?.SetTag("output.exit.code", exitCode);
+        commandActivity?.SetTag("command.exit.code", exitCode);
+        if (exitCode != 0)
+            commandActivity?.SetStatus(ActivityStatusCode.Error, lines.FirstOrDefault()?.ToPlainText());
+        return new(lines, exitCode);
+    }
+
+    private CommandResult TraceCommand(string[] arguments)
+    {
+        var verbose = arguments.Length > 0 && arguments[0] == "-v";
+        var commandIndex = verbose ? 1 : 0;
+        if (arguments.Length <= commandIndex)
+            return new([Line("trace: missing command", "error"), Line("usage: trace [-v] <command>")], 2);
+
+        var command = arguments[commandIndex].ToLowerInvariant();
+        command = Aliases.GetValueOrDefault(command, command);
+        if (command == "trace")
+            return new([Line("trace: refusing to trace trace recursively", "error")], 2);
+
+        using var collector = new CommandTraceCollector();
+        using var rootScope = TerminalActivities.StartRoot($"command.{command}");
+        var root = rootScope.Activity;
+        if (root is null)
+            return new([Line("trace: activity source is unavailable", "error")], 1);
+
+        collector.Capture(root.TraceId, root.SpanId);
+        root.SetTag("command.name", command);
+        root.SetTag("command.argument.count", arguments.Length - commandIndex - 1);
+
+        CommandResult result;
+        try
+        {
+            result = RunCommand(command, arguments[(commandIndex + 1)..]);
+            root.SetTag("command.exit.code", result.ExitCode);
+            root.SetStatus(result.ExitCode == 0 ? ActivityStatusCode.Ok : ActivityStatusCode.Error);
+        }
+        catch (Exception exception)
+        {
+            root.SetTag("exception.type", exception.GetType().FullName);
+            root.SetStatus(ActivityStatusCode.Error, exception.Message);
+            result = new([Line($"{command}: command execution failed", "error")], 1);
+        }
+
+        rootScope.Stop();
+        var traceOutput = TraceOutputFormatter.Format(
+            collector.Snapshot(),
+            verbose,
+            collector.DiscardedCount,
+            !string.IsNullOrWhiteSpace(Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]));
+        return traceOutput with { ExitCode = result.ExitCode };
+    }
+
+    private IReadOnlyList<OutputLine> RunCommandLines(string command, string[] arguments)
     {
         switch (command)
         {
@@ -303,14 +412,28 @@
                     Line(string.Empty),
                     Line("SYSTEM", "help-heading"),
                     HelpLink("ls", "List files", "ls"),
-                    HelpLink("cat <file>", "Read a file", "cat readme.txt"),
+                    HelpLink("cat <file>", "Read a file", "cat about.txt"),
+                    HelpLine("cd <directory>", "Change working directory"),
                     HelpLine("pwd", "Print working directory"),
+                    HelpLine("tree [path]", "Show the filesystem tree"),
                     HelpLine("whoami", "Print the current user"),
                     HelpLine("date", "Print server time"),
+                    HelpLine("version", "Build provenance and runtime details"),
+                    HelpLine("who", "Anonymous connection and session details"),
+                    HelpLine("git log --oneline", "Browse career history as commits"),
                     HelpLink("history", "Show this session's commands", "history"),
                     HelpLine("theme <name>", "Switch between green and amber"),
                     HelpLine("clear", "Clear the terminal"),
-                    HelpLink("telemetry", "Live application health", "telemetry")
+                    HelpLink("telemetry", "Live application health", "telemetry"),
+                    HelpLine("trace [-v] <command>", "Render a command's activity waterfall"),
+                    Line(string.Empty),
+                    Line("FILTERS", "help-heading"),
+                    HelpLine("grep [-i] [-v] <pattern>", "Filter lines by a regular expression"),
+                    HelpLine("head [-n count]", "Show the first lines"),
+                    HelpLine("tail [-n count]", "Show the last lines"),
+                    HelpLine("wc [-l]", "Count lines, words, and characters"),
+                    HelpLine("sort [-r]", "Sort lines"),
+                    HelpLine("uniq", "Remove adjacent duplicate lines")
                 };
             case "neofetch":
                 return NeofetchLines();
@@ -341,17 +464,25 @@
             case "contact":
                 return ContactLines();
             case "ls":
-                return TerminalFormatter.FileNames.Select(name => Link(name, "cat " + name)).ToArray();
+                return ListDirectory(arguments);
             case "cat":
-                return arguments.Length == 0
-                    ? new[] { Line("cat: missing file operand", "error") }
-                    : ReadFile(arguments[0]);
+                return CatFile(arguments);
+            case "cd":
+                return ChangeDirectory(arguments);
             case "pwd":
-                return new[] { Line("/home/" + TerminalContent.Owner) };
+                return [Line(VirtualFileSystem.ToAbsolutePath(CurrentPath))];
+            case "tree":
+                return TreeLines(arguments);
             case "whoami":
                 return new[] { Line(TerminalContent.Owner) };
+            case "who":
+                return WhoLines();
             case "date":
                 return new[] { Line(DateTimeOffset.Now.ToString("ddd MMM dd HH:mm:ss zzz yyyy")) };
+            case "version":
+                return VersionLines();
+            case "git":
+                return CareerGit.Execute(arguments);
             case "linkedin":
                 return new[] { External("linkedin.com/in/tabiddulph", TerminalContent.LinkedInUrl) };
             case "github":
@@ -368,7 +499,7 @@
                 return new[] { Line("tom is not in the sudoers file. This incident will be reported.", "error") };
             case "clear":
                 Entries.Clear();
-                return Array.Empty<TerminalLine>();
+                return Array.Empty<OutputLine>();
             case "theme":
                 return SetTheme(arguments);
             default:
@@ -376,12 +507,126 @@
         }
     }
 
-    private IReadOnlyList<TerminalLine> ReadFile(string fileName)
+    private IReadOnlyList<OutputLine> ReadFile(string fileName)
     {
         return TerminalFormatter.ReadFile(fileName);
     }
 
-    private IReadOnlyList<TerminalLine> SetTheme(string[] arguments)
+    private IReadOnlyList<OutputLine> ChangeDirectory(string[] arguments)
+    {
+        if (arguments.Length > 1)
+            return [Line("cd: too many arguments", "error")];
+
+        var requested = arguments.Length == 0 ? "~" : arguments[0];
+        if (!VirtualFileSystem.TryResolve(CurrentPath, requested, out var resolution))
+            return [Line($"cd: {requested}: No such file or directory", "error")];
+        if (resolution.Node is not DirectoryNode)
+            return [Line($"cd: {requested}: Not a directory", "error")];
+
+        CurrentPath = resolution.Path;
+        return [];
+    }
+
+    private IReadOnlyList<OutputLine> ListDirectory(string[] arguments)
+    {
+        var longFormat = false;
+        string? requested = null;
+        foreach (var argument in arguments)
+        {
+            if (argument == "-l")
+                longFormat = true;
+            else if (argument.StartsWith('-'))
+                return [Line($"ls: invalid option -- '{argument}'", "error")];
+            else if (requested is null)
+                requested = argument;
+            else
+                return [Line("ls: too many arguments", "error")];
+        }
+
+        requested ??= ".";
+        if (!VirtualFileSystem.TryResolve(CurrentPath, requested, out var resolution))
+            return [Line($"ls: cannot access '{requested}': No such file or directory", "error")];
+
+        if (resolution.Node is FileNode file)
+            return [FileSystemLink(file, resolution.Path, longFormat)];
+
+        var directory = (DirectoryNode)resolution.Node;
+        return directory.Children
+            .OrderByDescending(node => node is DirectoryNode)
+            .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(node => FileSystemLink(node, ChildPath(resolution.Path, node.Name), longFormat))
+            .ToArray();
+    }
+
+    private IReadOnlyList<OutputLine> CatFile(string[] arguments)
+    {
+        if (arguments.Length == 0)
+            return [Line("cat: missing file operand", "error")];
+        if (arguments.Length > 1)
+            return [Line("cat: too many arguments", "error")];
+
+        var requested = arguments[0];
+        if (!VirtualFileSystem.TryResolve(CurrentPath, requested, out var resolution))
+            return [Line($"cat: {requested}: No such file or directory", "error")];
+        if (resolution.Node is not FileNode file)
+            return [Line($"cat: {requested}: Is a directory", "error")];
+
+        return file.Read().Lines;
+    }
+
+    private IReadOnlyList<OutputLine> TreeLines(string[] arguments)
+    {
+        if (arguments.Length > 1)
+            return [Line("tree: too many arguments", "error")];
+
+        var requested = arguments.Length == 0 ? "." : arguments[0];
+        if (!VirtualFileSystem.TryResolve(CurrentPath, requested, out var resolution))
+            return [Line($"tree: {requested}: No such file or directory", "error")];
+
+        List<OutputLine> lines = [Line(resolution.Path)];
+        if (resolution.Node is DirectoryNode directory)
+            AddTreeChildren(directory, string.Empty, lines);
+        lines.Add(Line(string.Empty));
+        lines.Add(Line($"{CountDirectories(resolution.Node)} directories, {CountFiles(resolution.Node)} files"));
+        return lines;
+    }
+
+    private static void AddTreeChildren(DirectoryNode directory, string prefix, ICollection<OutputLine> lines)
+    {
+        var children = directory.Children
+            .OrderByDescending(node => node is DirectoryNode)
+            .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        for (var index = 0; index < children.Length; index++)
+        {
+            var child = children[index];
+            var last = index == children.Length - 1;
+            lines.Add(Line($"{prefix}{(last ? "`-" : "|-")} {child.Name}{(child is DirectoryNode ? "/" : string.Empty)}"));
+            if (child is DirectoryNode childDirectory)
+                AddTreeChildren(childDirectory, prefix + (last ? "   " : "|  "), lines);
+        }
+    }
+
+    private static int CountDirectories(FsNode node) => node is DirectoryNode directory
+        ? 1 + directory.Children.Sum(CountDirectories)
+        : 0;
+
+    private static int CountFiles(FsNode node) => node is DirectoryNode directory
+        ? directory.Children.Sum(CountFiles)
+        : 1;
+
+    private static OutputLine FileSystemLink(FsNode node, string path, bool longFormat)
+    {
+        var directory = node is DirectoryNode;
+        var name = node.Name + (directory ? "/" : string.Empty);
+        var label = longFormat ? $"{(directory ? 'd' : '-')}r--r--r--  {name}" : name;
+        var command = directory ? "cd " + path : "cat " + path;
+        return new LinkLine(label, command, LinkKind.Command) { Style = directory ? "accent directory" : "accent" };
+    }
+
+    private static string ChildPath(string parent, string name) => parent == "~" ? $"~/{name}" : $"{parent}/{name}";
+
+    private IReadOnlyList<OutputLine> SetTheme(string[] arguments)
     {
         if (arguments.Length == 0)
             return new[] { Line("Themes: green, amber. Current: " + Theme.Replace("theme-", string.Empty)) };
@@ -394,7 +639,7 @@
         return new[] { Line("Theme changed to " + requested + ".") };
     }
 
-    private static IReadOnlyList<TerminalLine> GitHubLines()
+    private static IReadOnlyList<OutputLine> GitHubLines()
     {
         return
         [
@@ -406,12 +651,12 @@
         ];
     }
 
-    private static IReadOnlyList<TerminalLine> NeofetchLines()
+    private static IReadOnlyList<OutputLine> NeofetchLines()
     {
-        return [Line(string.Empty, "neofetch")];
+        return [new RawLine(string.Empty, RawLineKind.Neofetch)];
     }
 
-    private static IReadOnlyList<TerminalLine> ManLines(string[] arguments)
+    private static IReadOnlyList<OutputLine> ManLines(string[] arguments)
     {
         if (arguments.Length > 0 && !arguments[0].Equals("tom", StringComparison.OrdinalIgnoreCase))
             return [Line("No manual entry for " + arguments[0], "error")];
@@ -435,22 +680,22 @@
         ];
     }
 
-    private static IReadOnlyList<TerminalLine> ResumeLines()
+    private static IReadOnlyList<OutputLine> ResumeLines()
     {
         return TerminalFormatter.Resume();
     }
 
-    private static IReadOnlyList<TerminalLine> StackLines()
+    private static IReadOnlyList<OutputLine> StackLines()
     {
         return TerminalFormatter.Stack();
     }
 
-    private static IReadOnlyList<TerminalLine> TimelineLines()
+    private static IReadOnlyList<OutputLine> TimelineLines()
     {
         return TerminalFormatter.Timeline();
     }
 
-    private static IReadOnlyList<TerminalLine> StatusLines()
+    private static IReadOnlyList<OutputLine> StatusLines()
     {
         return
         [
@@ -462,7 +707,7 @@
         ];
     }
 
-    private IReadOnlyList<TerminalLine> TelemetryLines()
+    private IReadOnlyList<OutputLine> TelemetryLines()
     {
         var snapshot = Telemetry.Snapshot();
         return
@@ -476,6 +721,39 @@
         ];
     }
 
+    private IReadOnlyList<OutputLine> WhoLines()
+    {
+        var snapshot = Telemetry.Snapshot();
+        var connection = snapshot.ActiveCircuits == 1
+            ? "this session is connected"
+            : $"{snapshot.ActiveCircuits} anonymous sessions connected";
+        return
+        [
+            Line("SESSION", "heading"),
+            Line($"user       {TerminalContent.Owner}"),
+            Line($"started    {SessionStarted:yyyy-MM-dd HH:mm:ss zzz}"),
+            Line($"duration   {FormatUptime(DateTimeOffset.Now - SessionStarted)}"),
+            Line($"circuits   {connection}"),
+            Line("privacy    no identity or location data collected")
+        ];
+    }
+
+    private IReadOnlyList<OutputLine> VersionLines()
+    {
+        List<OutputLine> lines =
+        [
+            Line("BLAZORTERM VERSION", "heading"),
+            Line($"build      {BuildInformation.BuildTimestamp}"),
+            Line($"runtime    {BuildInformation.Framework}"),
+            Line($"uptime     {FormatUptime(Telemetry.Snapshot().Uptime)}")
+        ];
+        var sha = BuildInformation.GitSha;
+        lines.Insert(1, sha == "development"
+            ? Line("revision   development")
+            : new LinkLine($"revision   {sha}", $"https://github.com/tombiddulph/BlazorTerm/commit/{sha}", LinkKind.Web, true) { Style = "accent" });
+        return lines;
+    }
+
     private static string FormatUptime(TimeSpan uptime)
     {
         return uptime.TotalDays >= 1
@@ -483,12 +761,12 @@
             : uptime.ToString("hh\\:mm\\:ss");
     }
 
-    private static IReadOnlyList<TerminalLine> ProjectLines()
+    private static IReadOnlyList<OutputLine> ProjectLines()
     {
         return TerminalFormatter.Projects();
     }
 
-    private static IReadOnlyList<TerminalLine> ProjectDetailLines(string[] arguments)
+    private static IReadOnlyList<OutputLine> ProjectDetailLines(string[] arguments)
     {
         if (arguments.Length == 0)
             return [Line("usage: project <name>", "error"), Link("available projects", "projects")];
@@ -504,9 +782,9 @@
         return TerminalFormatter.ProjectDetail(project);
     }
 
-    private static IReadOnlyList<TerminalLine> ContributionLines()
+    private static IReadOnlyList<OutputLine> ContributionLines()
     {
-        List<TerminalLine> lines =
+        List<OutputLine> lines =
         [
             Line("OPEN-SOURCE CONTRIBUTIONS", "heading"),
             Line("4 merged external pull requests / 1 currently open"),
@@ -522,12 +800,12 @@
         return lines;
     }
 
-    private static IReadOnlyList<TerminalLine> ContactLines()
+    private static IReadOnlyList<OutputLine> ContactLines()
     {
         return TerminalFormatter.Contact();
     }
 
-    private IReadOnlyList<TerminalLine> OpenLines(string[] arguments)
+    private IReadOnlyList<OutputLine> OpenLines(string[] arguments)
     {
         if (arguments.Length == 0)
             return [External("github.com/tombiddulph", TerminalContent.GitHubUrl)];
@@ -541,14 +819,14 @@
             : [External("open " + project.Title, project.Url)];
     }
 
-    private IReadOnlyList<TerminalLine> HistoryLines()
+    private IReadOnlyList<OutputLine> HistoryLines()
     {
         return CommandHistory
             .Select((command, index) => Line($"{index + 1,4}  {command}"))
             .ToArray();
     }
 
-    private static IReadOnlyList<TerminalLine> CoffeeLines()
+    private static IReadOnlyList<OutputLine> CoffeeLines()
     {
         return
         [
@@ -562,7 +840,7 @@
         ];
     }
 
-    private static IReadOnlyList<TerminalLine> FortuneLines()
+    private static IReadOnlyList<OutputLine> FortuneLines()
     {
         string[] fortunes =
         [
@@ -575,7 +853,7 @@
         return [Line(fortunes[Random.Shared.Next(fortunes.Length)], "accent")];
     }
 
-    private static IReadOnlyList<TerminalLine> UnknownCommandLines(string command)
+    private static IReadOnlyList<OutputLine> UnknownCommandLines(string command)
     {
         var suggestion = Commands
             .Select(candidate => new { Command = candidate, Distance = EditDistance(command, candidate) })
@@ -608,43 +886,44 @@
         return previous[right.Length];
     }
 
-    private static TerminalLine Line(string text, string tone = "")
+    private static OutputLine Line(string text, string tone = "")
     {
         return TerminalFormatter.Line(text, tone);
     }
 
-    private static TerminalLine Link(string text, string command)
+    private static OutputLine Link(string text, string command)
     {
         return TerminalFormatter.CommandLink(text, command);
     }
 
-    private static TerminalLine External(string text, string url)
+    private static OutputLine External(string text, string url)
     {
         return TerminalFormatter.External(text, url);
     }
 
-    private static TerminalLine HelpLine(string command, string description)
+    private static OutputLine HelpLine(string command, string description)
     {
-        return new(command, "help-row help-static", string.Empty, string.Empty, false, description);
+        return new BlazorTerm.HelpLine(command, description) { Style = "help-row help-static" };
     }
 
-    private static TerminalLine HelpLink(string command, string description, string target)
+    private static OutputLine HelpLink(string command, string description, string target)
     {
-        return new(command, "help-row help-link", target, string.Empty, false, description);
+        return new BlazorTerm.HelpLine(command, description, target, LinkKind.Command) { Style = "help-row help-link" };
     }
 
-    private static TerminalLine HelpExternal(string command, string description, string url)
+    private static OutputLine HelpExternal(string command, string description, string url)
     {
-        return new(command, "help-row help-link", string.Empty, url, true, description);
+        return new BlazorTerm.HelpLine(command, description, url, LinkKind.Web) { Style = "help-row help-link" };
     }
 
-    public sealed record HistoryEntry(string Command, string Path, List<TerminalLine> Lines);
+    public sealed record HistoryEntry(string Command, string Path, CommandResult Result);
     public sealed class TerminalSession
     {
         public List<HistoryEntry> Entries { get; set; } = [];
         public List<string> CommandHistory { get; set; } = [];
         public string Input { get; set; } = string.Empty;
         public string Theme { get; set; } = "theme-green";
+        public string CurrentPath { get; set; } = "~";
         public DateTimeOffset Started { get; set; } = DateTimeOffset.Now;
     }
 }

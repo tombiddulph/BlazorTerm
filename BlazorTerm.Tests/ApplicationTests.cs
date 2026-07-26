@@ -197,6 +197,61 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("last request", html);
     }
 
+    [Fact]
+    public async Task PipelineCommand_IsPrerendered()
+    {
+        var command = Uri.EscapeDataString("resume | grep -i newday | wc -l");
+        var html = await _client.GetStringAsync($"/?cmd={command}");
+
+        Assert.Contains("executed-command\">resume | grep -i newday | wc -l", html);
+        Assert.Contains("<div class=\"output-line \">2</div>", html);
+    }
+
+    [Fact]
+    public async Task TraceCommand_RendersRealCommandActivities()
+    {
+        var html = await _client.GetStringAsync("/?cmd=trace%20-v%20resume");
+
+        Assert.Contains("executed-command\">trace -v resume", html);
+        Assert.Contains("TRACE", html);
+        Assert.Contains("command.resume", html);
+        Assert.Contains("content.load", html);
+        Assert.Contains("output.format", html);
+        Assert.Contains("command.name = resume", html);
+    }
+
+    [Fact]
+    public async Task TraceCommand_RefusesRecursion()
+    {
+        var html = await _client.GetStringAsync("/?cmd=trace%20trace");
+
+        Assert.Contains("refusing to trace trace recursively", html);
+    }
+
+    [Fact]
+    public async Task FilesystemCommands_ArePrerendered()
+    {
+        var cat = await _client.GetStringAsync("/?cmd=cat%20projects/service-bus-explorer/README.md");
+        var cd = await _client.GetStringAsync("/?cmd=cd%20projects");
+        var pipe = await _client.GetStringAsync("/?cmd=ls%20%7C%20grep%20projects");
+
+        Assert.Contains("SERVICE BUS EMULATOR EXPLORER", cat);
+        Assert.Contains("path-segment\">~/projects", cd);
+        Assert.Contains("<mark class=\"match-highlight\">projects</mark>", pipe);
+    }
+
+    [Theory]
+    [InlineData("version", "BLAZORTERM VERSION")]
+    [InlineData("who", "no identity or location data collected")]
+    [InlineData("git%20log%20--oneline", "Senior Software Engineer at NewDay")]
+    [InlineData("git%20blame%20stack/languages.txt", "C#")]
+    public async Task SystemCommands_ArePrerendered(string command, string expected)
+    {
+        var html = await _client.GetStringAsync($"/?cmd={command}");
+
+        Assert.Contains(expected, html);
+    }
+
     [Theory]
     [InlineData("/resume")]
     [InlineData("/projects")]
