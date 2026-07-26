@@ -18,6 +18,7 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - Automated WCAG 2.1 AA checks with axe-core
 - ANSI resume output for terminal HTTP clients and an `/llms.txt` endpoint
 - Live circuit, uptime, and request-latency telemetry in the terminal
+- CDN-ready cache policies for circuit-free portfolio routes
 
 ## Commands
 

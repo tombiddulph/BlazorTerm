@@ -86,6 +86,25 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
+app.Use(async (context, next) =>
+{
+    if (IsCdnCacheablePath(context.Request.Path))
+    {
+        context.Response.OnStarting(() =>
+        {
+            if (context.Response.StatusCode == StatusCodes.Status200OK)
+            {
+                context.Response.Headers.CacheControl = "public, max-age=300, stale-if-error=604800";
+                context.Response.Headers["CDN-Cache-Control"] = "public, max-age=86400, stale-if-error=604800";
+            }
+
+            return Task.CompletedTask;
+        });
+    }
+
+    await next(context);
+});
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
 app.UseHttpsRedirection();
@@ -113,6 +132,16 @@ static bool WantsPlainText(HttpRequest request)
         || userAgent.StartsWith("HTTPie/", StringComparison.OrdinalIgnoreCase);
 
     return acceptsPlainText || isTerminalClient;
+}
+
+static bool IsCdnCacheablePath(PathString path)
+{
+    return path == "/resume"
+        || path == "/timeline"
+        || path == "/contact"
+        || path == "/llms.txt"
+        || path == "/sitemap.xml"
+        || path.StartsWithSegments("/projects");
 }
 
 public partial class Program;

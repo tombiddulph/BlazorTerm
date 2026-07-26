@@ -182,6 +182,42 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("last request", html);
     }
 
+    [Theory]
+    [InlineData("/resume")]
+    [InlineData("/projects")]
+    [InlineData("/projects/property-resolvers")]
+    [InlineData("/timeline")]
+    [InlineData("/contact")]
+    [InlineData("/llms.txt")]
+    [InlineData("/sitemap.xml")]
+    public async Task StaticContent_IsMarkedForCdnCaching(string path)
+    {
+        var response = await _client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.Public);
+        Assert.Equal(TimeSpan.FromMinutes(5), response.Headers.CacheControl?.MaxAge);
+        Assert.Equal("public, max-age=86400, stale-if-error=604800", response.Headers.GetValues("CDN-Cache-Control").Single());
+    }
+
+    [Fact]
+    public async Task InteractiveHome_IsNotMarkedForCdnCaching()
+    {
+        var response = await _client.GetAsync("/");
+
+        Assert.NotEqual(true, response.Headers.CacheControl?.Public);
+        Assert.False(response.Headers.Contains("CDN-Cache-Control"));
+    }
+
+    [Fact]
+    public async Task MissingProject_IsNotMarkedForCdnCaching()
+    {
+        var response = await _client.GetAsync("/projects/not-a-project");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.False(response.Headers.Contains("CDN-Cache-Control"));
+    }
+
     [Fact]
     public async Task HomePage_ReferencesAvailableBlazorRuntime()
     {
