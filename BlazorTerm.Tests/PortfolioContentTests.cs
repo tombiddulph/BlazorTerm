@@ -116,4 +116,22 @@ public sealed class PortfolioContentTests
         Assert.Equal(session.Entries[0].Path, restored.Entries[0].Path);
         Assert.Equal(session.Entries[0].Lines, restored.Entries[0].Lines);
     }
+
+    [Fact]
+    public void TextFormatters_UseStructuredContent()
+    {
+        var ansi = PlainTextPortfolioFormatter.AnsiResume();
+        var llms = PlainTextPortfolioFormatter.LlmsText();
+
+        Assert.All(TerminalContent.Resume, entry =>
+        {
+            Assert.Contains(entry.Company, ansi);
+            Assert.Contains(entry.Company, llms);
+        });
+        Assert.All(TerminalContent.Projects, project =>
+        {
+            Assert.Contains(project.Title, ansi);
+            Assert.Contains(project.Title, llms);
+        });
+    }
 }

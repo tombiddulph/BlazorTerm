@@ -1,8 +1,11 @@
 using BlazorTerm;
 using BlazorTerm.Components;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using System.Diagnostics;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,8 @@ builder.Services.AddRazorComponents()
         options.PersistedCircuitInMemoryMaxRetained = 1_000;
         options.PersistedCircuitInMemoryRetentionPeriod = TimeSpan.FromHours(2);
     });
+builder.Services.AddSingleton<TerminalTelemetry>();
+builder.Services.AddSingleton<CircuitHandler>(services => services.GetRequiredService<TerminalTelemetry>());
 
 var telemetry = builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(
@@ -37,13 +42,15 @@ telemetry.WithMetrics(metering =>
     metering
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation();
+        .AddRuntimeInstrumentation()
+        .AddMeter(TerminalTelemetry.MeterName);
 
     if (exportTelemetry)
         metering.AddOtlpExporter();
 });
 
 var app = builder.Build();
+var terminalTelemetry = app.Services.GetRequiredService<TerminalTelemetry>();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -51,6 +58,33 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.Use(async (context, next) =>
+{
+    var startedAt = Stopwatch.GetTimestamp();
+    try
+    {
+        await next(context);
+    }
+    finally
+    {
+        if (!context.WebSockets.IsWebSocketRequest && !context.Request.Path.StartsWithSegments("/healthz"))
+            terminalTelemetry.RecordRequest(Stopwatch.GetElapsedTime(startedAt));
+    }
+});
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/" && WantsPlainText(context.Request))
+    {
+        context.Response.ContentType = "text/plain; charset=utf-8";
+        context.Response.Headers.Vary = "Accept, User-Agent";
+        await context.Response.WriteAsync(PlainTextPortfolioFormatter.AnsiResume());
+        return;
+    }
+
+    await next(context);
+});
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
@@ -60,6 +94,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapGet("/healthz", () => Results.NoContent());
+app.MapGet("/llms.txt", () => Results.Text(PlainTextPortfolioFormatter.LlmsText(), "text/plain", Encoding.UTF8));
 app.MapGet("/sitemap.xml", () => Results.Text(
     $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n{string.Join('\n', TerminalContent.PublicRoutes.Select(route => $"  <url><loc>{TerminalContent.SiteUrl}{route}</loc></url>"))}\n</urlset>",
     "application/xml"));
@@ -67,5 +102,17 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+static bool WantsPlainText(HttpRequest request)
+{
+    var acceptsPlainText = request.GetTypedHeaders().Accept?.Any(mediaType =>
+        mediaType.MediaType.Value?.Equals("text/plain", StringComparison.OrdinalIgnoreCase) == true) == true;
+    var userAgent = request.Headers.UserAgent.ToString();
+    var isTerminalClient = userAgent.StartsWith("curl/", StringComparison.OrdinalIgnoreCase)
+        || userAgent.StartsWith("Wget/", StringComparison.OrdinalIgnoreCase)
+        || userAgent.StartsWith("HTTPie/", StringComparison.OrdinalIgnoreCase);
+
+    return acceptsPlainText || isTerminalClient;
+}
 
 public partial class Program;

@@ -66,6 +66,19 @@ test('opens the static resume with the gui command', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Experience' })).toBeVisible();
 });
 
+test('shows live application telemetry', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('telemetry', { delay: 0 });
+  await input.press('Enter');
+
+  const output = page.locator('#terminal-output');
+  await expect(output).toContainText('LIVE TELEMETRY');
+  await expect(output).toContainText(/circuits\s+\d+ active/);
+  await expect(output).toContainText(/last request\s+\d+\.\d ms/);
+});
+
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 

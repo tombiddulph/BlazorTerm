@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject TerminalTelemetry Telemetry
 
 <PageTitle>@TerminalContent.PageTitle</PageTitle>
 <HeadContent>
@@ -116,7 +117,7 @@
         "help", "neofetch", "man", "about", "resume", "stack", "hosting", "timeline", "status",
         "experience", "education", "skills", "projects", "project", "contributions",
         "contact", "github", "linkedin", "open", "history", "ls", "cat", "pwd",
-        "whoami", "date", "clear", "theme", "gui", "coffee", "fortune", "sudo"
+        "whoami", "date", "clear", "theme", "gui", "telemetry", "coffee", "fortune", "sudo"
     ];
 
     private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact"];
@@ -274,6 +275,7 @@
                     Link("status      What I am focused on", "status"),
                     Link("contact     Ways to get in touch", "contact"),
                     Link("gui         Open the plain web resume", "gui"),
+                    Link("telemetry   Live application health", "telemetry"),
                     Link("ls          List files", "ls"),
                     Link("cat <file>  Read a file", "cat readme.txt"),
                     Line("pwd          Print working directory"),
@@ -309,6 +311,8 @@
                 return TimelineLines();
             case "status":
                 return StatusLines();
+            case "telemetry":
+                return TelemetryLines();
             case "contact":
                 return ContactLines();
             case "ls":
@@ -381,7 +385,7 @@
     {
         return
         [
-            Line("       .----.       tom@portfolio", "heading"),
+            Line($"       .----.       {TerminalContent.Owner}@{TerminalContent.Host}", "heading"),
             Line("      / .--. \\      -------------"),
             Line("     | |    | |     Role: Senior Software Engineer"),
             Line("     | |.-\"\"-.|     Focus: C#, .NET, backend, fintech"),
@@ -444,6 +448,27 @@
             Line("learning   source generation and distributed telemetry"),
             External("activity   github.com/tombiddulph", TerminalContent.GitHubUrl)
         ];
+    }
+
+    private IReadOnlyList<TerminalLine> TelemetryLines()
+    {
+        var snapshot = Telemetry.Snapshot();
+        return
+        [
+            Line("LIVE TELEMETRY", "heading"),
+            Line($"circuits       {snapshot.ActiveCircuits} active"),
+            Line($"uptime         {FormatUptime(snapshot.Uptime)}"),
+            Line($"last request   {snapshot.LastRequestMilliseconds:F1} ms"),
+            Line("instrumentation ASP.NET Core + runtime + HTTP + custom metrics"),
+            Line("export          OpenTelemetry / OTLP")
+        ];
+    }
+
+    private static string FormatUptime(TimeSpan uptime)
+    {
+        return uptime.TotalDays >= 1
+            ? $"{(int)uptime.TotalDays}d {uptime:hh\\:mm\\:ss}"
+            : uptime.ToString("hh\\:mm\\:ss");
     }
 
     private static IReadOnlyList<TerminalLine> ProjectLines()

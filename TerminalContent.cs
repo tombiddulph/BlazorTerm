@@ -5,7 +5,7 @@ public static class TerminalContent
     public const string SiteUrl = "https://terminal.tommyb.dev";
     public const string DisplayName = "Tom Biddulph";
     public const string Owner = "tom";
-    public const string Host = "portfolio";
+    public const string Host = "tommyb";
     public const string City = "Leeds";
     public const string CountryCode = "GB";
     public const string Location = "Leeds, United Kingdom";

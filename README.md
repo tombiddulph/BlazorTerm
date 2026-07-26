@@ -16,6 +16,8 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - Mobile layout and reduced-motion support
 - Playwright coverage for terminal keyboard input and command execution
 - Automated WCAG 2.1 AA checks with axe-core
+- ANSI resume output for terminal HTTP clients and an `/llms.txt` endpoint
+- Live circuit, uptime, and request-latency telemetry in the terminal
 
 ## Commands
 

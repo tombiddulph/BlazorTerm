@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,6 +130,56 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Contains("executed-command\">projects", html);
         Assert.Contains("SELECTED PROJECTS", html);
+    }
+
+    [Fact]
+    public async Task PlainTextRequest_ReturnsAnsiResume()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+
+        var response = await _client.SendAsync(request);
+        var content = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("\u001b[1;32mTom Biddulph", content);
+        Assert.Contains("EXPERIENCE", content);
+        Assert.Contains("SELECTED PROJECTS", content);
+    }
+
+    [Fact]
+    public async Task CurlUserAgent_ReturnsAnsiResume()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.UserAgent.ParseAdd("curl/8.0.0");
+
+        var response = await _client.SendAsync(request);
+
+        Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task LlmsText_ContainsStructuredPortfolioContent()
+    {
+        var response = await _client.GetAsync("/llms.txt");
+        var content = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("# Tom Biddulph", content);
+        Assert.Contains("## Experience", content);
+        Assert.All(TerminalContent.Projects, project => Assert.Contains(project.Title, content));
+    }
+
+    [Fact]
+    public async Task TelemetryCommand_IsPrerendered()
+    {
+        var html = await _client.GetStringAsync("/?cmd=telemetry");
+
+        Assert.Contains("LIVE TELEMETRY", html);
+        Assert.Contains("circuits", html);
+        Assert.Contains("last request", html);
     }
 
     [Fact]
