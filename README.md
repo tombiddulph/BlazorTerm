@@ -5,6 +5,7 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 ## Features
 
 - Interactive Server rendering with persisted circuit state
+- Static, semantic resume, project, timeline, and contact routes
 - Command history, aliases, typo suggestions, and tab completion
 - Powerlevel10k-inspired prompt and responsive iTerm-style interface
 - Project case studies with terminal architecture diagrams
@@ -13,6 +14,7 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - Custom reconnect and circuit-resume experience
 - OpenTelemetry request tracing and runtime/application metrics over OTLP
 - Mobile layout and reduced-motion support
+- Playwright coverage for terminal keyboard input and command execution
 
 ## Commands
 
@@ -41,6 +43,15 @@ dotnet run
 
 Open the URL shown in the terminal. The project uses Blazor Interactive Server rendering, so WebSocket support is required when hosting it behind a proxy.
 
+Run the server-side and browser tests with:
+
+```shell
+dotnet test BlazorTerm.slnx
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
 ## Container
 
 Commits to `main` publish a container image to GitHub Container Registry. Pull and run the latest image with:
@@ -53,7 +64,7 @@ Pull requests build the image without publishing it. Version tags matching `v*` 
 
 ## Configuration
 
-Personal content, project details, and external links are defined in `TerminalContent.cs`. Terminal behavior is implemented in `Components/Pages/Home.razor`, with browser-side keyboard handling in `wwwroot/terminal.js`.
+Structured personal content, project details, and external links are defined in `TerminalContent.cs`. `TerminalFormatter.cs` renders that model for the shell, while the components under `Components/Portfolio` render the same content as semantic HTML. Terminal behavior is implemented in `Components/Pages/Home.razor`, with browser-side keyboard handling in `wwwroot/terminal.js`.
 
 ## Inspiration
 

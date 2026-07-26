@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">Tom Biddulph, Senior Software Engineer</title>
+  <desc id="description">A dark terminal window introducing Tom Biddulph and his C# and .NET engineering work.</desc>
+  <rect width="1200" height="630" fill="#0f111a"/>
+  <rect x="64" y="52" width="1072" height="526" rx="18" fill="#151821" stroke="#343b4d" stroke-width="3"/>
+  <rect x="64" y="52" width="1072" height="58" rx="18" fill="#28292d"/>
+  <rect x="64" y="92" width="1072" height="18" fill="#28292d"/>
+  <circle cx="103" cy="81" r="9" fill="#ff5f57"/>
+  <circle cx="133" cy="81" r="9" fill="#febc2e"/>
+  <circle cx="163" cy="81" r="9" fill="#28c840"/>
+  <g font-family="JetBrains Mono, Consolas, monospace">
+    <text x="110" y="178" fill="#c3e88d" font-size="28">tom@portfolio:~$ whoami</text>
+    <text x="110" y="270" fill="#d8dee9" font-size="56" font-weight="700">Tom Biddulph</text>
+    <text x="110" y="326" fill="#aab1c3" font-size="29">Senior Software Engineer</text>
+    <text x="110" y="398" fill="#82aaff" font-size="25">C#  .NET  Backend  Azure  OpenTelemetry</text>
+    <text x="110" y="502" fill="#c3e88d" font-size="24">terminal.tommyb.dev</text>
+  </g>
+</svg>

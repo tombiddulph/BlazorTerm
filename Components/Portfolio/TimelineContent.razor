@@ -1,0 +1,12 @@
+<section aria-labelledby="timeline-heading">
+    <h2 id="timeline-heading">Career timeline</h2>
+    <ol class="timeline-list">
+        @foreach (var item in TerminalContent.Timeline)
+        {
+            <li>
+                <time datetime="@item.When.ToString("yyyy-MM-dd")">@item.When.Year</time>
+                <div><strong>@item.Title</strong><span>@item.Detail</span></div>
+            </li>
+        }
+    </ol>
+</section>

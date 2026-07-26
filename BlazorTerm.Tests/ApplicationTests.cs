@@ -32,6 +32,74 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("Tom Biddulph", html);
         Assert.Contains("data-command-completions", html);
         Assert.Contains("components-reconnect-modal", html);
+        Assert.Contains("id=\"portfolio-content\"", html);
+        Assert.Contains("NewDay", html);
+        Assert.Contains("Checkout.com", html);
+        Assert.Contains("Service Bus Emulator Explorer", html);
+        Assert.Contains(TerminalContent.MetaDescription, html);
+        Assert.Contains("https://schema.org", html);
+        Assert.Contains("og-card.png", html);
+    }
+
+    [Theory]
+    [InlineData("/resume", "Experience")]
+    [InlineData("/projects", "Selected projects")]
+    [InlineData("/projects/property-resolvers", "Roslyn source generator")]
+    [InlineData("/timeline", "Career timeline")]
+    [InlineData("/contact", "linkedin.com/in/tabiddulph")]
+    public async Task StaticPortfolioRoutes_RenderSemanticContentWithoutACircuit(string path, string expectedContent)
+    {
+        var response = await _client.GetAsync(path);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<main class=\"static-page\"", html);
+        Assert.Contains(expectedContent, html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"type\":\"server\"", html);
+        Assert.Contains("rel=\"canonical\"", html);
+        Assert.Contains("property=\"og:title\"", html);
+    }
+
+    [Fact]
+    public async Task UnknownProject_ReturnsNotFoundStatus()
+    {
+        var response = await _client.GetAsync("/projects/not-a-project");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("No such file or directory", html);
+        Assert.Contains("/projects/not-a-project", html);
+    }
+
+    [Theory]
+    [InlineData("/robots.txt", "Sitemap: https://terminal.tommyb.dev/sitemap.xml")]
+    [InlineData("/sitemap.xml", "https://terminal.tommyb.dev/resume")]
+    public async Task DiscoveryFiles_ArePublished(string path, string expectedContent)
+    {
+        var response = await _client.GetAsync(path);
+        var content = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(expectedContent, content);
+    }
+
+    [Fact]
+    public async Task Sitemap_ContainsEveryProjectPage()
+    {
+        var sitemap = await _client.GetStringAsync("/sitemap.xml");
+
+        Assert.All(TerminalContent.Projects, project =>
+            Assert.Contains($"{TerminalContent.SiteUrl}/projects/{project.Slug}", sitemap));
+    }
+
+    [Fact]
+    public async Task OpenGraphImage_IsPublishedAsPng()
+    {
+        var response = await _client.GetAsync("/og-card.png");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        Assert.True(response.Content.Headers.ContentLength > 0);
     }
 
     [Fact]

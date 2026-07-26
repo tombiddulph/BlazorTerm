@@ -1,0 +1,11 @@
+<section aria-labelledby="contact-heading">
+    <h2 id="contact-heading">Contact</h2>
+    <p>The best places to find my work and get in touch are GitHub and LinkedIn.</p>
+    <dl class="contact-list">
+        @foreach (var link in TerminalContent.ContactLinks)
+        {
+            <dt>@link.Name</dt>
+            <dd><a href="@link.Url" rel="me noopener noreferrer">@link.DisplayUrl</a></dd>
+        }
+    </dl>
+</section>

@@ -1,0 +1,64 @@
+@page "/projects/{Slug}"
+
+@if (_project is not null)
+{
+    <PortfolioHead Title="@($"{_project.Title} | Tom Biddulph")" Description="@_project.Summary" Path="@($"/projects/{_project.Slug}")" />
+    <main class="static-page">
+        <StaticPageHeader Command="@($"project {_project.Slug}")" />
+        <article class="case-study">
+            <p class="eyebrow">Project case study</p>
+            <h1>@_project.Title</h1>
+            <p class="lede">@_project.Summary</p>
+            <p>@_project.CaseStudy</p>
+            <dl class="stack-list">
+                <dt>Stack</dt>
+                <dd>@string.Join(", ", _project.Stack)</dd>
+            </dl>
+            <section aria-labelledby="architecture-heading">
+                <h2 id="architecture-heading">Architecture</h2>
+                <ol>
+                    @foreach (var layer in _project.Architecture)
+                    {
+                        <li>@layer</li>
+                    }
+                </ol>
+            </section>
+            <section aria-labelledby="highlights-heading">
+                <h2 id="highlights-heading">Highlights</h2>
+                <ul>
+                    @foreach (var highlight in _project.Highlights)
+                    {
+                        <li>@highlight</li>
+                    }
+                </ul>
+            </section>
+            <p><a class="primary-link" href="@_project.Url" rel="noopener noreferrer">View source on GitHub</a></p>
+        </article>
+    </main>
+}
+else
+{
+    <PortfolioHead Title="Project not found | Tom Biddulph" Description="The requested project could not be found." Path="/projects" />
+    <main class="static-page">
+        <StaticPageHeader Command="@($"project {Slug}")" />
+        <h1>Project not found</h1>
+        <p><a href="/projects">Browse all projects</a></p>
+    </main>
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private Project? _project;
+
+    protected override void OnParametersSet()
+    {
+        _project = TerminalContent.Projects.FirstOrDefault(project => project.Slug.Equals(Slug, StringComparison.OrdinalIgnoreCase));
+        if (_project is null && HttpContext is not null)
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+    }
+}

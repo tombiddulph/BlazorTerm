@@ -5,13 +5,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080b0a" />
-    <meta name="description" content="A personal terminal built with Blazor and C#." />
+    <meta name="author" content="Tom Biddulph" />
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="@Assets["favicon.svg"]" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["BlazorTerm.styles.css"]" />
     <ImportMap />
+    <script type="application/ld+json">@((MarkupString)PersonJsonLd)</script>
     <HeadOutlet />
 </head>
 
@@ -23,3 +24,21 @@
 </body>
 
 </html>
+
+@code {
+    private static readonly string PersonJsonLd = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "Person",
+        ["name"] = TerminalContent.Profile.Name,
+        ["url"] = TerminalContent.SiteUrl,
+        ["jobTitle"] = TerminalContent.Profile.Role,
+        ["address"] = new Dictionary<string, string>
+        {
+            ["@type"] = "PostalAddress",
+            ["addressLocality"] = TerminalContent.City,
+            ["addressCountry"] = TerminalContent.CountryCode
+        },
+        ["sameAs"] = TerminalContent.ContactLinks.Select(link => link.Url).ToArray()
+    });
+}

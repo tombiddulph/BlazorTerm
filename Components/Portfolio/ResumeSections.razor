@@ -1,0 +1,56 @@
+<section aria-labelledby="profile-heading">
+    <p class="eyebrow">@TerminalContent.Profile.Role</p>
+    <h1 id="profile-heading">@TerminalContent.Profile.Name</h1>
+    <p class="lede">@TerminalContent.Profile.Summary</p>
+    <p>@TerminalContent.Profile.About</p>
+    <p>@TerminalContent.Profile.Location</p>
+</section>
+
+<section aria-labelledby="experience-heading">
+    <h2 id="experience-heading">Experience</h2>
+    <div class="resume-list">
+        @foreach (var entry in TerminalContent.Resume)
+        {
+            <article>
+                <header>
+                    <h3>@entry.Role</h3>
+                    <p><strong>@entry.Company</strong> / <time datetime="@entry.From.ToString("yyyy-MM-dd")">@entry.From.Year</time>@if (entry.To is null)
+                    {<span>-present</span>}
+                    else if (entry.To.Value.Year != entry.From.Year)
+                    {<span>-</span><time datetime="@entry.To.Value.ToString("yyyy-MM-dd")">@entry.To.Value.Year</time>}</p>
+                </header>
+                @if (entry.Highlights.Length > 0)
+                {
+                    <ul>
+                        @foreach (var highlight in entry.Highlights)
+                        {
+                            <li>@highlight</li>
+                        }
+                    </ul>
+                }
+            </article>
+        }
+    </div>
+</section>
+
+<section aria-labelledby="education-heading">
+    <h2 id="education-heading">Education</h2>
+    @foreach (var entry in TerminalContent.Education)
+    {
+        <article>
+            <h3>@entry.Institution</h3>
+            <p>@entry.Qualification / @entry.Result</p>
+        </article>
+    }
+</section>
+
+<section aria-labelledby="stack-heading">
+    <h2 id="stack-heading">Technology stack</h2>
+    <dl class="stack-list">
+        @foreach (var group in TerminalContent.Stack)
+        {
+            <dt>@group.Category</dt>
+            <dd>@string.Join(", ", group.Technologies)</dd>
+        }
+    </dl>
+</section>

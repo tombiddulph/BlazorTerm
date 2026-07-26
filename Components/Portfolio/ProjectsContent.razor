@@ -1,0 +1,37 @@
+<section aria-labelledby="projects-heading">
+    <h2 id="projects-heading">Selected projects</h2>
+    <div class="project-list">
+        @foreach (var project in TerminalContent.Projects)
+        {
+            <article>
+                <h3><a href="/projects/@project.Slug">@project.Title</a></h3>
+                <p>@project.Summary</p>
+                <p class="project-stack"><strong>Stack:</strong> @string.Join(", ", project.Stack)</p>
+                @if (ShowDetails)
+                {
+                    <p>@project.CaseStudy</p>
+                    <h4>Architecture</h4>
+                    <ol>
+                        @foreach (var layer in project.Architecture)
+                        {
+                            <li>@layer</li>
+                        }
+                    </ol>
+                    <h4>Highlights</h4>
+                    <ul>
+                        @foreach (var highlight in project.Highlights)
+                        {
+                            <li>@highlight</li>
+                        }
+                    </ul>
+                }
+                <p><a href="@project.Url" rel="noopener noreferrer">View source on GitHub</a></p>
+            </article>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public bool ShowDetails { get; set; }
+}

@@ -18,6 +18,10 @@
 *.coverage
 *.coveragexml
 coverage/
+node_modules/
+playwright-report/
+playwright/.cache/
+test-results/
 
 ## Logs and local configuration
 *.log

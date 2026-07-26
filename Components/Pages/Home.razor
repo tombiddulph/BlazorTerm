@@ -2,9 +2,22 @@
 @rendermode InteractiveServer
 @inject IJSRuntime JS
 
-<PageTitle>Terminal / Home</PageTitle>
+<PageTitle>@TerminalContent.PageTitle</PageTitle>
+<HeadContent>
+    <meta name="description" content="@TerminalContent.MetaDescription" />
+    <link rel="canonical" href="@TerminalContent.SiteUrl/" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:title" content="@TerminalContent.PageTitle" />
+    <meta property="og:description" content="@TerminalContent.MetaDescription" />
+    <meta property="og:url" content="@TerminalContent.SiteUrl/" />
+    <meta property="og:image" content="@TerminalContent.SiteUrl/og-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Tom Biddulph's terminal portfolio" />
+</HeadContent>
 
-<main class="site-shell @Theme">
+<div class="site-shell @Theme">
     <section class="terminal-window" aria-label="Interactive personal terminal">
         <header class="iterm-header">
             <div class="traffic-lights" aria-hidden="true">
@@ -44,7 +57,7 @@
                                 }
                                 else if (!string.IsNullOrEmpty(line.Url))
                                 {
-                                    <a class="output-link" href="@line.Url" target="_blank" rel="noopener noreferrer">@line.Text</a>
+                                    <a class="output-link" href="@line.Url" target="@(line.OpenInNewTab ? "_blank" : null)" rel="@(line.OpenInNewTab ? "noopener noreferrer" : null)">@line.Text</a>
                                 }
                                 else
                                 {
@@ -63,7 +76,7 @@
                            @oninput="UpdateInput"
                            @onkeydown="HandleKeyDown"
                            data-command-completions="@string.Join(',', Commands)"
-                           data-file-completions="@string.Join(',', TerminalContent.Files.Keys)"
+                            data-file-completions="@string.Join(',', TerminalFormatter.FileNames)"
                            data-project-completions="@string.Join(',', TerminalContent.Projects.Select(project => project.Slug))"
                            autocomplete="off"
                            autocapitalize="off"
@@ -83,7 +96,9 @@
             <span class="footer-location">~/portfolio</span>
         </footer>
     </section>
-</main>
+</div>
+
+<PortfolioOverview Class="semantic-fallback" />
 
 @code {
     private static readonly string[] Commands =
@@ -119,7 +134,6 @@
     private string Input { get => Session.Input; set => Session.Input = value; }
     private string Theme { get => Session.Theme; set => Session.Theme = value; }
     private DateTimeOffset SessionStarted => Session.Started;
-
     protected override void OnInitialized()
     {
         _historyIndex = CommandHistory.Count;
@@ -266,7 +280,7 @@
             case "contact":
                 return ContactLines();
             case "ls":
-                return TerminalContent.Files.Keys.Select(name => Link(name, "cat " + name)).ToArray();
+                return TerminalFormatter.FileNames.Select(name => Link(name, "cat " + name)).ToArray();
             case "cat":
                 return arguments.Length == 0
                     ? new[] { Line("cat: missing file operand", "error") }
@@ -303,11 +317,7 @@
 
     private IReadOnlyList<TerminalLine> ReadFile(string fileName)
     {
-        string[]? content;
-        if (!TerminalContent.Files.TryGetValue(fileName, out content))
-            return new[] { Line("cat: " + fileName + ": No such file", "error") };
-
-        return content.Select(text => Line(text, text.All(char.IsUpper) && text.Length > 0 ? "heading" : string.Empty)).ToArray();
+        return TerminalFormatter.ReadFile(fileName);
     }
 
     private IReadOnlyList<TerminalLine> SetTheme(string[] arguments)
@@ -379,61 +389,17 @@
 
     private static IReadOnlyList<TerminalLine> ResumeLines()
     {
-        return
-        [
-            Line("TOM BIDDULPH", "heading"),
-            Line("Senior Software Engineer / C# / Backend / Fintech"),
-            Line("Leeds, United Kingdom"),
-            Line(string.Empty),
-            Line("EXPERIENCE", "heading"),
-            Line("2023 - now   NewDay         Senior Software Engineer"),
-            Line("2022         Codat          Senior Software Engineer"),
-            Line("2021 - 2022  Checkout.com   Software Engineer II"),
-            Line("2019 - 2020  NewDay         Software Engineer"),
-            Line("2018 - 2019  AND Digital    Associate"),
-            Line(string.Empty),
-            Line("EDUCATION", "heading"),
-            Line("University of Hull / BSc Computer Science / First-class honours"),
-            Line(string.Empty),
-            Line("SPECIALISMS", "heading"),
-            Line(".NET, C#, backend systems, Azure, messaging, OpenTelemetry"),
-            Line("Self-hosting, Proxmox, Kubernetes"),
-            Line(string.Empty),
-            External("GitHub", TerminalContent.GitHubUrl),
-            External("LinkedIn", TerminalContent.LinkedInUrl)
-        ];
+        return TerminalFormatter.Resume();
     }
 
     private static IReadOnlyList<TerminalLine> StackLines()
     {
-        return
-        [
-            Line("TECHNOLOGY STACK", "heading"),
-            Line("Languages       C#, TypeScript, SQL"),
-            Line("Platform        .NET, ASP.NET Core, Azure Functions"),
-            Line("Cloud           Azure, Service Bus, Application Insights"),
-            Line("Infrastructure  Proxmox, Kubernetes, self-hosting"),
-            Line("Observability   OpenTelemetry, distributed tracing, OTLP"),
-            Line("Delivery        Docker, GitHub Actions, CI/CD"),
-            Line("Testing         TUnit, integration testing, test hosts")
-        ];
+        return TerminalFormatter.Stack();
     }
 
     private static IReadOnlyList<TerminalLine> TimelineLines()
     {
-        return
-        [
-            Line("CAREER TIMELINE", "heading"),
-            Line("2018  [AND Digital]---- Associate"),
-            Line("         |"),
-            Line("2019  [NewDay]--------- Software Engineer"),
-            Line("         |"),
-            Line("2021  [Checkout.com]--- Software Engineer II"),
-            Line("         |"),
-            Line("2022  [Codat]---------- Senior Software Engineer"),
-            Line("         |"),
-            Line("2023  [NewDay]--------- Senior Software Engineer ----> now")
-        ];
+        return TerminalFormatter.Timeline();
     }
 
     private static IReadOnlyList<TerminalLine> StatusLines()
@@ -450,17 +416,7 @@
 
     private static IReadOnlyList<TerminalLine> ProjectLines()
     {
-        List<TerminalLine> lines = [Line("SELECTED PROJECTS", "heading")];
-
-        foreach (var project in TerminalContent.Projects)
-        {
-            lines.Add(External(project.Name + "  [" + project.Stack + "]", project.Url));
-            lines.Add(Line("  " + project.Description));
-            lines.Add(Line(string.Empty));
-        }
-
-        lines.Add(External("View all 35 public repositories", TerminalContent.GitHubUrl + "?tab=repositories"));
-        return lines;
+        return TerminalFormatter.Projects();
     }
 
     private static IReadOnlyList<TerminalLine> ProjectDetailLines(string[] arguments)
@@ -471,33 +427,12 @@
         var query = string.Join('-', arguments).ToLowerInvariant();
         var project = TerminalContent.Projects.FirstOrDefault(item =>
             item.Slug.StartsWith(query, StringComparison.OrdinalIgnoreCase) ||
-            item.Name.Replace(" ", "-").StartsWith(query, StringComparison.OrdinalIgnoreCase));
+            item.Title.Replace(" ", "-").StartsWith(query, StringComparison.OrdinalIgnoreCase));
 
         if (project is null)
             return [Line("project: '" + string.Join(' ', arguments) + "' not found", "error"), Link("available projects", "projects")];
 
-        List<TerminalLine> lines =
-        [
-            Line(project.Name.ToUpperInvariant(), "heading"),
-            Line(project.Stack),
-            Line(project.Description),
-            Line(string.Empty),
-            Line("ARCHITECTURE", "heading")
-        ];
-
-        for (var i = 0; i < project.Architecture.Length; i++)
-        {
-            lines.Add(Line("  " + project.Architecture[i]));
-            if (i < project.Architecture.Length - 1)
-                lines.Add(Line("          |"));
-        }
-
-        lines.Add(Line(string.Empty));
-        lines.Add(Line("HIGHLIGHTS", "heading"));
-        lines.AddRange(project.Highlights.Select(highlight => Line("  + " + highlight)));
-        lines.Add(Line(string.Empty));
-        lines.Add(External("View source on GitHub", project.Url));
-        return lines;
+        return TerminalFormatter.ProjectDetail(project);
     }
 
     private static IReadOnlyList<TerminalLine> ContributionLines()
@@ -520,12 +455,7 @@
 
     private static IReadOnlyList<TerminalLine> ContactLines()
     {
-        return
-        [
-            Line("CONTACT", "heading"),
-            External("github    github.com/tombiddulph", TerminalContent.GitHubUrl),
-            External("linkedin  linkedin.com/in/tabiddulph", TerminalContent.LinkedInUrl)
-        ];
+        return TerminalFormatter.Contact();
     }
 
     private IReadOnlyList<TerminalLine> OpenLines(string[] arguments)
@@ -539,7 +469,7 @@
 
         return project is null
             ? [Line("open: unknown target '" + string.Join(' ', arguments) + "'", "error")]
-            : [External("open " + project.Name, project.Url)];
+            : [External("open " + project.Title, project.Url)];
     }
 
     private IReadOnlyList<TerminalLine> HistoryLines()
@@ -611,22 +541,20 @@
 
     private static TerminalLine Line(string text, string tone = "")
     {
-        return new TerminalLine(text, tone, string.Empty, string.Empty);
+        return TerminalFormatter.Line(text, tone);
     }
 
     private static TerminalLine Link(string text, string command)
     {
-        return new TerminalLine(text, "accent", command, string.Empty);
+        return TerminalFormatter.CommandLink(text, command);
     }
 
     private static TerminalLine External(string text, string url)
     {
-        return new TerminalLine(text, "accent", string.Empty, url);
+        return TerminalFormatter.External(text, url);
     }
 
     public sealed record HistoryEntry(string Command, string Path, List<TerminalLine> Lines);
-    public sealed record TerminalLine(string Text, string Tone, string Command, string Url);
-
     public sealed class TerminalSession
     {
         public List<HistoryEntry> Entries { get; set; } = [];

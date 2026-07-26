@@ -1,0 +1,12 @@
+<main class="@Class" id="portfolio-content">
+    <PortfolioNav />
+    <ResumeSections />
+    <ProjectsContent ShowDetails="true" />
+    <TimelineContent />
+    <ContactContent />
+</main>
+
+@code {
+    [Parameter]
+    public string Class { get; set; } = "static-page";
+}

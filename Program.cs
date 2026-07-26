@@ -1,3 +1,4 @@
+using BlazorTerm;
 using BlazorTerm.Components;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -59,6 +60,9 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapGet("/healthz", () => Results.NoContent());
+app.MapGet("/sitemap.xml", () => Results.Text(
+    $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n{string.Join('\n', TerminalContent.PublicRoutes.Select(route => $"  <url><loc>{TerminalContent.SiteUrl}{route}</loc></url>"))}\n</urlset>",
+    "application/xml"));
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
