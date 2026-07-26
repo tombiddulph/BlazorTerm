@@ -18,3 +18,32 @@ test('accepts keyboard input and executes a command', async ({ page }) => {
   await expect(page.locator('#terminal-output')).toContainText('AVAILABLE COMMANDS');
   expect(browserErrors).toEqual([]);
 });
+
+test('preserves terminal output across circuit pause and resume', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('about');
+  await input.press('Enter');
+  await expect(page.locator('#terminal-output')).toContainText('ABOUT');
+
+  await page.evaluate(() => window.Blazor.pauseCircuit());
+  await page.evaluate(() => window.Blazor.resumeCircuit());
+
+  await expect(page.locator('#terminal-output')).toContainText('ABOUT');
+  await expect(input).toBeEditable();
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('shows the semantic resume', async ({ page }) => {
+    await page.goto('/');
+
+    const fallback = page.locator('.noscript-content');
+    await expect(fallback).toBeVisible();
+    await expect(fallback).toContainText('Experience');
+    await expect(fallback).toContainText('NewDay');
+    await expect(fallback).toContainText('Selected projects');
+  });
+});

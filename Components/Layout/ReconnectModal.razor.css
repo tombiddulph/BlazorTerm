@@ -89,3 +89,15 @@
 #components-reconnect-modal button:hover {
     background: #a8c3ff;
 }
+
+.reconnect-fallback {
+    color: #c3e88d;
+    display: inline-block;
+    margin-left: 0.75rem;
+    text-underline-offset: 3px;
+}
+
+.reconnect-fallback:focus-visible {
+    outline: 2px solid #82aaff;
+    outline-offset: 3px;
+}

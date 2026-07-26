@@ -379,6 +379,10 @@ button {
     padding: clamp(1.25rem, 5vw, 4rem);
 }
 
+.noscript-content {
+    background: #0f111a;
+}
+
 .static-page a,
 .semantic-fallback a {
     color: #c3e88d;

@@ -39,6 +39,8 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains(TerminalContent.MetaDescription, html);
         Assert.Contains("https://schema.org", html);
         Assert.Contains("og-card.png", html);
+        Assert.Contains("<noscript>", html);
+        Assert.Contains("static-page noscript-content", html);
     }
 
     [Theory]
@@ -100,6 +102,16 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
         Assert.True(response.Content.Headers.ContentLength > 0);
+    }
+
+    [Fact]
+    public async Task ReconnectInterfaces_LinkToStaticResume()
+    {
+        var html = await _client.GetStringAsync("/");
+
+        Assert.Contains("view the plain resume", html, StringComparison.OrdinalIgnoreCase);
+        Assert.True(Regex.Matches(html, "href=\"/resume\"").Count >= 2);
+        Assert.DoesNotContain("href=\"\" class=\"reload\"", html);
     }
 
     [Fact]

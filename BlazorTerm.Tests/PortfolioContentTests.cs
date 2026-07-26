@@ -1,3 +1,8 @@
+using System.Reflection;
+using System.Text.Json;
+using BlazorTerm.Components.Pages;
+using Microsoft.AspNetCore.Components;
+
 namespace BlazorTerm.Tests;
 
 public sealed class PortfolioContentTests
@@ -78,5 +83,37 @@ public sealed class PortfolioContentTests
             TerminalContent.Stack.Length,
             TerminalContent.Stack.Select(group => group.Category).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.All(TerminalContent.Stack, group => Assert.NotEmpty(group.Technologies));
+    }
+
+    [Fact]
+    public void TerminalSession_IsPersistentAndSerializable()
+    {
+        var persistedSession = typeof(Home).GetProperty(nameof(Home.PersistedSession));
+        Assert.NotNull(persistedSession?.GetCustomAttribute<PersistentStateAttribute>());
+
+        var session = new Home.TerminalSession
+        {
+            Input = "projects",
+            Theme = "theme-amber",
+            Entries =
+            [
+                new Home.HistoryEntry(
+                    "resume",
+                    "~",
+                    [TerminalFormatter.Line("TOM BIDDULPH", "heading")])
+            ],
+            CommandHistory = ["help", "resume"]
+        };
+
+        var restored = JsonSerializer.Deserialize<Home.TerminalSession>(JsonSerializer.Serialize(session));
+
+        Assert.NotNull(restored);
+        Assert.Equal(session.Input, restored.Input);
+        Assert.Equal(session.Theme, restored.Theme);
+        Assert.Equal(session.CommandHistory, restored.CommandHistory);
+        Assert.Single(restored.Entries);
+        Assert.Equal(session.Entries[0].Command, restored.Entries[0].Command);
+        Assert.Equal(session.Entries[0].Path, restored.Entries[0].Path);
+        Assert.Equal(session.Entries[0].Lines, restored.Entries[0].Lines);
     }
 }
