@@ -11,7 +11,7 @@ test('accepts keyboard input and executes a command', async ({ page }) => {
 
   const input = page.locator('#terminal-input');
   await expect(input).toBeFocused();
-  await page.keyboard.type('help');
+  await page.keyboard.type('help', { delay: 0 });
   await expect(input).toHaveValue('help');
   await page.keyboard.press('Enter');
 
@@ -23,7 +23,8 @@ test('preserves terminal output across circuit pause and resume', async ({ page 
   await page.goto('/');
   const input = page.locator('#terminal-input');
   await expect(input).toBeFocused();
-  await input.pressSequentially('about');
+  await input.pressSequentially('about', { delay: 0 });
+  await expect(input).toHaveValue('about');
   await input.press('Enter');
   await expect(page.locator('#terminal-output')).toContainText('ABOUT');
 
@@ -40,6 +41,18 @@ test('runs suggested commands without typing', async ({ page }) => {
   await page.getByRole('button', { name: 'projects', exact: true }).click();
 
   await expect(page.locator('#terminal-output')).toContainText('SELECTED PROJECTS');
+});
+
+test('completes and executes a command with the keyboard', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('res', { delay: 0 });
+  await input.press('Tab');
+  await expect(input).toHaveValue('resume ');
+  await input.press('Enter');
+
+  await expect(page.locator('#terminal-output')).toContainText('EXPERIENCE');
 });
 
 test('opens the static resume with the gui command', async ({ page }) => {

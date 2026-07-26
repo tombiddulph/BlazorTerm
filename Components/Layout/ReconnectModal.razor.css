@@ -73,7 +73,7 @@
 
 .reconnect-prompt { color: #c3e88d; }
 .reconnect-error { color: #ff757f; }
-.reconnect-muted { color: #73798b; }
+.reconnect-muted { color: #9299aa; }
 
 #components-reconnect-modal button {
     background: #82aaff;

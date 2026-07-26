@@ -12,13 +12,23 @@
     z-index: 1000;
 }
 
-#blazor-error-ui a {
+#blazor-error-ui a,
+#blazor-error-ui button {
     color: #fff1c8;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
+#blazor-error-ui button {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-decoration: underline;
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    right: 0.75rem;
+    text-decoration: none;
+    top: 0.5rem;
+}

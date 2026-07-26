@@ -11,19 +11,36 @@ window.terminalUi = {
     }
 };
 
+const blazorError = document.getElementById("blazor-error-ui");
+const reloadButton = blazorError?.querySelector(".reload");
+const dismissButton = blazorError?.querySelector(".dismiss");
+reloadButton?.addEventListener("click", () => location.reload());
+dismissButton?.addEventListener("click", () => blazorError.style.display = "none");
+
 document.addEventListener("keydown", function (event) {
     if (!event.target || event.target.id !== "terminal-input") return;
 
     if (event.key === "Tab") {
         event.preventDefault();
         completeInput(event.target);
+        event.stopImmediatePropagation();
+        return;
+    }
+
+    if (event.key === "Enter") {
+        event.target.dispatchEvent(new Event("change", { bubbles: true }));
         return;
     }
 
     if (event.key === "ArrowUp" || event.key === "ArrowDown" ||
         (event.ctrlKey && event.key.toLowerCase() === "l")) {
         event.preventDefault();
+        return;
     }
+
+    // Blazor handles commands, not individual characters. Keeping ordinary
+    // key events local prevents delayed server renders from replacing newer input.
+    event.stopImmediatePropagation();
 });
 
 // Mobile browsers only open the software keyboard when focus occurs directly
@@ -66,7 +83,6 @@ function completeInput(input) {
 
     const suffix = matches.length === 1 && lastSpace === -1 ? " " : "";
     input.value = value.substring(0, lastSpace + 1) + completion + suffix;
-    input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 document.addEventListener("visibilitychange", async function () {

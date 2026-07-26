@@ -16,6 +16,23 @@ body {
     min-height: 100%;
 }
 
+.skip-link {
+    background: #c3e88d;
+    color: #11131a;
+    font-weight: 700;
+    left: 1rem;
+    padding: 0.65rem 0.9rem;
+    position: fixed;
+    top: 1rem;
+    transform: translateY(-200%);
+    transition: transform 120ms ease;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
 body {
     background: #0f111a;
     color: #d8dee9;
@@ -332,7 +349,7 @@ button {
     align-items: center;
     background: #191b22;
     border-top: 1px solid #272a36;
-    color: #727888;
+    color: #9299aa;
     display: flex;
     font-size: 0.52rem;
     gap: 1.5rem;
@@ -353,7 +370,7 @@ button {
 }
 
 .not-found-code {
-    color: #73798b;
+    color: #9299aa;
     margin: 0 0 2rem 1rem;
 }
 
@@ -383,6 +400,20 @@ button {
 }
 
 .semantic-fallback:focus-within {
+    background: #0f111a;
+    clip: auto;
+    clip-path: none;
+    height: auto;
+    inset: 0;
+    margin: 0;
+    overflow: auto;
+    padding: 2rem;
+    white-space: normal;
+    width: auto;
+    z-index: 20;
+}
+
+.semantic-fallback:target {
     background: #0f111a;
     clip: auto;
     clip-path: none;
@@ -666,5 +697,29 @@ kbd {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
+    }
+}
+
+@media (prefers-contrast: more) {
+    .site-shell,
+    .static-page,
+    .semantic-fallback:target,
+    .semantic-fallback:focus-within {
+        --accent: #d9ff9f;
+        --paper: #ffffff;
+    }
+
+    .output-line,
+    .session-intro,
+    .static-page p,
+    .static-page li,
+    .static-page dd {
+        color: #e7ebf4;
+    }
+
+    .command-chips button,
+    .resume-list article,
+    .project-list article {
+        border-color: #c7cedd;
     }
 }

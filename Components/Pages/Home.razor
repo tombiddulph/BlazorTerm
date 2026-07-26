@@ -18,6 +18,7 @@
     <meta property="og:image:alt" content="Tom Biddulph's terminal portfolio" />
 </HeadContent>
 
+<a class="skip-link" href="#portfolio-content">Skip to portfolio content</a>
 <div class="site-shell @Theme">
     <section class="terminal-window" aria-label="Interactive personal terminal">
         <header class="iterm-header">
@@ -36,48 +37,50 @@
 
         <div class="workspace">
             <div class="terminal" id="terminal-output">
-                <div class="session-intro">
-                    <div>Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
-                    <div>@TerminalContent.DisplayName / Senior Software Engineer / C# + Backend</div>
-                    <div>Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
-                </div>
-
-                @foreach (var entry in Entries)
-                {
-                    <div class="history-entry">
-                        <div class="prompt-row executed">
-                            <Prompt Path="@entry.Path" />
-                            <span class="executed-command">@entry.Command</span>
-                        </div>
-                        @foreach (var line in entry.Lines)
-                        {
-                            <div class="output-line @line.Tone">
-                                @if (!string.IsNullOrEmpty(line.Command))
-                                {
-                                    <button class="output-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
-                                }
-                                else if (!string.IsNullOrEmpty(line.Url))
-                                {
-                                    <a class="output-link" href="@line.Url" target="@(line.OpenInNewTab ? "_blank" : null)" rel="@(line.OpenInNewTab ? "noopener noreferrer" : null)">@line.Text</a>
-                                }
-                                else
-                                {
-                                    @line.Text
-                                }
-                            </div>
-                        }
+                <div class="terminal-log" role="log" aria-live="polite" aria-relevant="additions text">
+                    <div class="session-intro">
+                        <div>Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
+                        <div>@TerminalContent.DisplayName / Senior Software Engineer / C# + Backend</div>
+                        <div>Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
                     </div>
-                }
+
+                    @foreach (var entry in Entries)
+                    {
+                        <div class="history-entry">
+                            <div class="prompt-row executed">
+                                <Prompt Path="@entry.Path" />
+                                <span class="executed-command">@entry.Command</span>
+                            </div>
+                            @foreach (var line in entry.Lines)
+                            {
+                                <div class="output-line @line.Tone">
+                                    @if (!string.IsNullOrEmpty(line.Command))
+                                    {
+                                        <button class="output-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
+                                    }
+                                    else if (!string.IsNullOrEmpty(line.Url))
+                                    {
+                                        <a class="output-link" href="@line.Url" target="@(line.OpenInNewTab ? "_blank" : null)" rel="@(line.OpenInNewTab ? "noopener noreferrer" : null)">@line.Text</a>
+                                    }
+                                    else
+                                    {
+                                        @line.Text
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
 
                 <label class="prompt-row active-prompt" for="terminal-input">
                     <Prompt Path="@_path" />
                     <input id="terminal-input"
                            class="command-input"
                            value="@Input"
-                           @oninput="UpdateInput"
+                           @onchange="UpdateInput"
                            @onkeydown="HandleKeyDown"
                            data-command-completions="@string.Join(',', Commands)"
-                            data-file-completions="@string.Join(',', TerminalFormatter.FileNames)"
+                           data-file-completions="@string.Join(',', TerminalFormatter.FileNames)"
                            data-project-completions="@string.Join(',', TerminalContent.Projects.Select(project => project.Slug))"
                            autocomplete="off"
                            autocapitalize="off"

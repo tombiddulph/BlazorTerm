@@ -44,6 +44,9 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("executed-command\">neofetch", html);
         Assert.Contains("executed-command\">whoami", html);
         Assert.Contains("aria-label=\"Suggested terminal commands\"", html);
+        Assert.Contains("role=\"log\"", html);
+        Assert.Contains("aria-live=\"polite\"", html);
+        Assert.Contains("href=\"#portfolio-content\"", html);
     }
 
     [Theory]
@@ -114,7 +117,9 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Contains("view the plain resume", html, StringComparison.OrdinalIgnoreCase);
         Assert.True(Regex.Matches(html, "href=\"/resume\"").Count >= 2);
-        Assert.DoesNotContain("href=\"\" class=\"reload\"", html);
+        Assert.Contains("<button type=\"button\" class=\"reload\"", html);
+        Assert.Contains(">Reload</button>", html);
+        Assert.DoesNotContain("href=\"\"", html);
     }
 
     [Fact]
