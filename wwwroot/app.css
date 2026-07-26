@@ -304,6 +304,30 @@ button {
     opacity: 0.25;
 }
 
+.command-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0 0 1rem;
+}
+
+.command-chips button {
+    background: rgba(var(--accent-rgb), 0.06);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 999px;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.72rem;
+    padding: 0.35rem 0.7rem;
+}
+
+.command-chips button:hover,
+.command-chips button:focus-visible {
+    background: rgba(var(--accent-rgb), 0.14);
+    border-color: var(--accent);
+    outline: none;
+}
+
 .terminal-footer {
     align-items: center;
     background: #191b22;

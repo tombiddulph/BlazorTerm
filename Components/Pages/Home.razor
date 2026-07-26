@@ -1,6 +1,7 @@
 @page "/"
 @rendermode InteractiveServer
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>@TerminalContent.PageTitle</PageTitle>
 <HeadContent>
@@ -86,6 +87,12 @@
                            aria-label="Terminal command" />
                     <span class="cursor" aria-hidden="true"></span>
                 </label>
+                <nav class="command-chips" aria-label="Suggested terminal commands">
+                    @foreach (var command in SuggestedCommands)
+                    {
+                        <button type="button" @onclick="() => RunShortcut(command)">@command</button>
+                    }
+                </nav>
             </div>
         </div>
 
@@ -106,8 +113,10 @@
         "help", "neofetch", "man", "about", "resume", "stack", "hosting", "timeline", "status",
         "experience", "education", "skills", "projects", "project", "contributions",
         "contact", "github", "linkedin", "open", "history", "ls", "cat", "pwd",
-        "whoami", "date", "clear", "theme", "coffee", "fortune", "sudo"
+        "whoami", "date", "clear", "theme", "gui", "coffee", "fortune", "sudo"
     ];
+
+    private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact"];
 
     private static readonly IReadOnlyDictionary<string, string> Aliases =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -128,6 +137,9 @@
     [PersistentState]
     public TerminalSession? PersistedSession { get; set; }
 
+    [SupplyParameterFromQuery(Name = "cmd")]
+    public string? RequestedCommand { get; set; }
+
     private TerminalSession Session => PersistedSession ??= new();
     private List<HistoryEntry> Entries => Session.Entries;
     private List<string> CommandHistory => Session.CommandHistory;
@@ -137,6 +149,15 @@
     protected override void OnInitialized()
     {
         _historyIndex = CommandHistory.Count;
+
+        if (Entries.Count == 0 && CommandHistory.Count == 0)
+        {
+            Execute("neofetch");
+            Execute("whoami");
+
+            if (!string.IsNullOrWhiteSpace(RequestedCommand) && RequestedCommand.Length <= 100)
+                Execute(RequestedCommand);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -213,6 +234,13 @@
         var command = parts[0].ToLowerInvariant();
         command = Aliases.GetValueOrDefault(command, command);
         var arguments = parts.Skip(1).ToArray();
+
+        if (command == "gui")
+        {
+            Navigation.NavigateTo("/resume");
+            return;
+        }
+
         var lines = RunCommand(command, arguments);
 
         if (command != "clear")
@@ -242,6 +270,7 @@
                     Link("contributions  Open-source contributions", "contributions"),
                     Link("status      What I am focused on", "status"),
                     Link("contact     Ways to get in touch", "contact"),
+                    Link("gui         Open the plain web resume", "gui"),
                     Link("ls          List files", "ls"),
                     Link("cat <file>  Read a file", "cat readme.txt"),
                     Line("pwd          Print working directory"),

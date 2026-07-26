@@ -41,6 +41,9 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("og-card.png", html);
         Assert.Contains("<noscript>", html);
         Assert.Contains("static-page noscript-content", html);
+        Assert.Contains("executed-command\">neofetch", html);
+        Assert.Contains("executed-command\">whoami", html);
+        Assert.Contains("aria-label=\"Suggested terminal commands\"", html);
     }
 
     [Theory]
@@ -112,6 +115,15 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("view the plain resume", html, StringComparison.OrdinalIgnoreCase);
         Assert.True(Regex.Matches(html, "href=\"/resume\"").Count >= 2);
         Assert.DoesNotContain("href=\"\" class=\"reload\"", html);
+    }
+
+    [Fact]
+    public async Task CommandDeepLink_IsPrerendered()
+    {
+        var html = await _client.GetStringAsync("/?cmd=projects");
+
+        Assert.Contains("executed-command\">projects", html);
+        Assert.Contains("SELECTED PROJECTS", html);
     }
 
     [Fact]

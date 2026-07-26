@@ -34,6 +34,25 @@ test('preserves terminal output across circuit pause and resume', async ({ page 
   await expect(input).toBeEditable();
 });
 
+test('runs suggested commands without typing', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#terminal-input')).toBeFocused();
+  await page.getByRole('button', { name: 'projects', exact: true }).click();
+
+  await expect(page.locator('#terminal-output')).toContainText('SELECTED PROJECTS');
+});
+
+test('opens the static resume with the gui command', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('gui');
+  await input.press('Enter');
+
+  await expect(page).toHaveURL(/\/resume$/);
+  await expect(page.getByRole('heading', { name: 'Experience' })).toBeVisible();
+});
+
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 
