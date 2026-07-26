@@ -40,9 +40,9 @@
             <div class="terminal" id="terminal-output">
                 <div class="terminal-log" role="log" aria-live="polite" aria-relevant="additions text">
                     <div class="session-intro">
-                        <div>Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
-                        <div>@TerminalContent.DisplayName / Senior Software Engineer / C# + Backend</div>
-                        <div>Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
+                        <div class="login-line">Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
+                        <div class="identity-line"><strong>@TerminalContent.DisplayName</strong><span>Senior Software Engineer / C# + Backend</span></div>
+                        <div class="intro-hint">Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
                     </div>
 
                     @foreach (var entry in Entries)
@@ -54,7 +54,31 @@
                             </div>
                             @foreach (var line in entry.Lines)
                             {
-                                <div class="output-line @line.Tone">
+                                @if (line.Tone == "neofetch")
+                                {
+                                    <NeofetchOutput />
+                                }
+                                else if (line.Tone.StartsWith("help-row", StringComparison.Ordinal))
+                                {
+                                    <div class="output-line @line.Tone">
+                                        @if (!string.IsNullOrEmpty(line.Command))
+                                        {
+                                            <button class="output-command help-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
+                                        }
+                                        else if (!string.IsNullOrEmpty(line.Url))
+                                        {
+                                            <a class="output-link help-command" href="@line.Url" target="_blank" rel="noopener noreferrer">@line.Text</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="help-command">@line.Text</span>
+                                        }
+                                        <span class="help-description">@line.Secondary</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="output-line @line.Tone">
                                     @if (!string.IsNullOrEmpty(line.Command))
                                     {
                                         <button class="output-command" @onclick="() => RunShortcut(line.Command)">@line.Text</button>
@@ -67,7 +91,8 @@
                                     {
                                         @line.Text
                                     }
-                                </div>
+                                    </div>
+                                }
                             }
                         </div>
                     }
@@ -104,7 +129,7 @@
             <span><kbd>↑</kbd><kbd>↓</kbd> HISTORY</span>
             <span><kbd>TAB</kbd> COMPLETE</span>
             <span><kbd>CTRL</kbd> + <kbd>L</kbd> CLEAR</span>
-            <span class="footer-location">~/portfolio</span>
+            <span class="footer-location">@TerminalContent.Owner@@@TerminalContent.Host:~</span>
         </footer>
     </section>
 </div>
@@ -120,7 +145,7 @@
         "whoami", "date", "clear", "theme", "gui", "telemetry", "coffee", "fortune", "sudo"
     ];
 
-    private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact"];
+    private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact", "telemetry"];
 
     private static readonly IReadOnlyDictionary<string, string> Aliases =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -259,33 +284,33 @@
                 return new[]
                 {
                     Line("AVAILABLE COMMANDS", "heading"),
-                    Link("neofetch     Quick profile overview", "neofetch"),
-                    Link("man tom      Full profile manual", "man tom"),
-                    Link("about       A short introduction", "about"),
-                    Link("resume      Terminal-formatted CV", "resume"),
-                    Link("stack       Technologies I work with", "stack"),
-                    Link("hosting     How this site is self-hosted", "hosting"),
-                    Link("timeline    Career history at a glance", "timeline"),
-                    Link("experience  My professional history", "experience"),
-                    Link("education   Degree and university", "education"),
-                    Link("skills      Technologies and specialisms", "skills"),
-                    Link("projects    Selected GitHub projects", "projects"),
-                    Link("project <name>  Open a project case study", "project service-bus-explorer"),
-                    Link("contributions  Open-source contributions", "contributions"),
-                    Link("status      What I am focused on", "status"),
-                    Link("contact     Ways to get in touch", "contact"),
-                    Link("gui         Open the plain web resume", "gui"),
-                    Link("telemetry   Live application health", "telemetry"),
-                    Link("ls          List files", "ls"),
-                    Link("cat <file>  Read a file", "cat readme.txt"),
-                    Line("pwd          Print working directory"),
-                    Line("whoami       Print the current user"),
-                    Line("date         Print server time"),
-                    Link("history      Show this session's commands", "history"),
-                    External("github       Open my GitHub profile", TerminalContent.GitHubUrl),
-                    External("linkedin     Open my LinkedIn profile", TerminalContent.LinkedInUrl),
-                    Line("theme <name> Switch between green and amber"),
-                    Line("clear        Clear the terminal")
+                    Line("PROFILE", "help-heading"),
+                    HelpLink("about", "A short introduction", "about"),
+                    HelpLink("resume", "Terminal-formatted CV", "resume"),
+                    HelpLink("experience", "Professional history", "experience"),
+                    HelpLink("stack", "Technologies and specialisms", "stack"),
+                    HelpLink("timeline", "Career history at a glance", "timeline"),
+                    HelpLink("education", "Degree and university", "education"),
+                    Line(string.Empty),
+                    Line("NAVIGATE", "help-heading"),
+                    HelpLink("projects", "Selected GitHub projects", "projects"),
+                    HelpLink("project <name>", "Open a project case study", "project service-bus-explorer"),
+                    HelpLink("contributions", "Open-source contributions", "contributions"),
+                    HelpLink("contact", "Ways to get in touch", "contact"),
+                    HelpLink("gui", "Open the plain web resume", "gui"),
+                    HelpExternal("github", "Open my GitHub profile", TerminalContent.GitHubUrl),
+                    HelpExternal("linkedin", "Open my LinkedIn profile", TerminalContent.LinkedInUrl),
+                    Line(string.Empty),
+                    Line("SYSTEM", "help-heading"),
+                    HelpLink("ls", "List files", "ls"),
+                    HelpLink("cat <file>", "Read a file", "cat readme.txt"),
+                    HelpLine("pwd", "Print working directory"),
+                    HelpLine("whoami", "Print the current user"),
+                    HelpLine("date", "Print server time"),
+                    HelpLink("history", "Show this session's commands", "history"),
+                    HelpLine("theme <name>", "Switch between green and amber"),
+                    HelpLine("clear", "Clear the terminal"),
+                    HelpLink("telemetry", "Live application health", "telemetry")
                 };
             case "neofetch":
                 return NeofetchLines();
@@ -383,20 +408,7 @@
 
     private static IReadOnlyList<TerminalLine> NeofetchLines()
     {
-        return
-        [
-            Line($"       .----.       {TerminalContent.Owner}@{TerminalContent.Host}", "heading"),
-            Line("      / .--. \\      -------------"),
-            Line("     | |    | |     Role: Senior Software Engineer"),
-            Line("     | |.-\"\"-.|     Focus: C#, .NET, backend, fintech"),
-            Line("    ///`.::::.`\\\\    Cloud: Azure + Service Bus"),
-            Line("   ||| ::/  \\:: ;||   Observability: OpenTelemetry"),
-            Line("   ||; ::\\__/:: ;||   Location: Leeds, UK"),
-            Line("    \\\\ '::::' //    Homelab: Proxmox + Kubernetes"),
-            Line("     `=':-..-'`     GitHub: 35 public repositories"),
-            Line("                     Shell: Blazor / .NET 10 / C# 14"),
-            External("                     github.com/tombiddulph", TerminalContent.GitHubUrl)
-        ];
+        return [Line(string.Empty, "neofetch")];
     }
 
     private static IReadOnlyList<TerminalLine> ManLines(string[] arguments)
@@ -609,6 +621,21 @@
     private static TerminalLine External(string text, string url)
     {
         return TerminalFormatter.External(text, url);
+    }
+
+    private static TerminalLine HelpLine(string command, string description)
+    {
+        return new(command, "help-row help-static", string.Empty, string.Empty, false, description);
+    }
+
+    private static TerminalLine HelpLink(string command, string description, string target)
+    {
+        return new(command, "help-row help-link", target, string.Empty, false, description);
+    }
+
+    private static TerminalLine HelpExternal(string command, string description, string url)
+    {
+        return new(command, "help-row help-link", string.Empty, url, true, description);
     }
 
     public sealed record HistoryEntry(string Command, string Path, List<TerminalLine> Lines);

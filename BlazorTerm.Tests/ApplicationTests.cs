@@ -45,6 +45,8 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("executed-command\">neofetch", html);
         Assert.Contains("executed-command\">whoami", html);
         Assert.Contains("aria-label=\"Suggested terminal commands\"", html);
+        Assert.Contains(">telemetry</button>", html);
+        Assert.Contains("class=\"neofetch-output\"", html);
         Assert.Contains("role=\"log\"", html);
         Assert.Contains("aria-live=\"polite\"", html);
         Assert.Contains("href=\"#portfolio-content\"", html);
@@ -130,6 +132,19 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
 
         Assert.Contains("executed-command\">projects", html);
         Assert.Contains("SELECTED PROJECTS", html);
+    }
+
+    [Fact]
+    public async Task HelpCommand_GroupsPrimaryNavigation()
+    {
+        var html = await _client.GetStringAsync("/?cmd=help");
+
+        Assert.Contains(">PROFILE</div>", html);
+        Assert.Contains(">NAVIGATE</div>", html);
+        Assert.Contains(">SYSTEM</div>", html);
+        Assert.Contains(">project &lt;name&gt;</button>", html);
+        Assert.Contains(">Open a project case study</span>", html);
+        Assert.Contains(">theme &lt;name&gt;</span>", html);
     }
 
     [Fact]

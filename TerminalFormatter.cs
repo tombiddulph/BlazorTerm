@@ -183,4 +183,10 @@ public static class TerminalFormatter
     public static TerminalLine External(string text, string url) => new(text, "accent", string.Empty, url, true);
 }
 
-public sealed record TerminalLine(string Text, string Tone, string Command, string Url, bool OpenInNewTab);
+public sealed record TerminalLine(
+    string Text,
+    string Tone,
+    string Command,
+    string Url,
+    bool OpenInNewTab,
+    string Secondary = "");
