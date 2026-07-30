@@ -118,12 +118,18 @@ public sealed record CommandInvocation(IReadOnlyList<string> Arguments, CommandR
 
 public interface ICommand
 {
-    CommandResult Execute(CommandInvocation invocation);
+    ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default);
 }
 
-public sealed class DelegateCommand(Func<CommandInvocation, CommandResult> execute) : ICommand
+public sealed class DelegateCommand(Func<CommandInvocation, CancellationToken, ValueTask<CommandResult>> execute) : ICommand
 {
-    public CommandResult Execute(CommandInvocation invocation) => execute(invocation);
+    public DelegateCommand(Func<CommandInvocation, CommandResult> execute)
+        : this((invocation, _) => ValueTask.FromResult(execute(invocation)))
+    {
+    }
+
+    public ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default) =>
+        execute(invocation, cancellationToken);
 }
 
 public interface IFilter : ICommand
@@ -143,9 +149,10 @@ public sealed class PipelineExecutor
 
     public IReadOnlyCollection<string> FilterNames => _filters.Keys.ToArray();
 
-    public CommandResult Execute(
+    public async ValueTask<CommandResult> ExecuteAsync(
         IReadOnlyList<CommandSegment> segments,
-        Func<string, ICommand?> resolveCommand)
+        Func<string, ICommand?> resolveCommand,
+        CancellationToken cancellationToken = default)
     {
         CommandResult? result = null;
         for (var index = 0; index < segments.Count; index++)
@@ -157,7 +164,7 @@ public sealed class PipelineExecutor
             if (index > 0 && command is not IFilter)
                 return Error($"{segment.Name}: not a filter", 127);
 
-            result = command.Execute(new(segment.Arguments, result));
+            result = await command.ExecuteAsync(new(segment.Arguments, result), cancellationToken);
 
             if (result.ExitCode != 0)
                 return result;
@@ -172,7 +179,7 @@ public sealed class PipelineExecutor
     private abstract class FilterBase(string name) : IFilter
     {
         public string Name { get; } = name;
-        public abstract CommandResult Execute(CommandInvocation invocation);
+        public abstract ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default);
 
         protected static IReadOnlyList<OutputLine> InputLines(CommandInvocation invocation) => invocation.Input?.Lines ?? [];
         protected static CommandResult Usage(string message) => Error(message);
@@ -180,7 +187,7 @@ public sealed class PipelineExecutor
 
     private sealed class GrepFilter() : FilterBase("grep")
     {
-        public override CommandResult Execute(CommandInvocation invocation)
+        public override ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default)
         {
             var ignoreCase = false;
             var invert = false;
@@ -194,7 +201,7 @@ public sealed class PipelineExecutor
                     {
                         if (flag == 'i') ignoreCase = true;
                         else if (flag == 'v') invert = true;
-                        else return Usage($"grep: invalid option -- '{flag}'");
+                        else return ValueTask.FromResult(Usage($"grep: invalid option -- '{flag}'"));
                     }
                 }
                 else if (pattern is null)
@@ -203,12 +210,12 @@ public sealed class PipelineExecutor
                 }
                 else
                 {
-                    return Usage("grep: too many arguments");
+                    return ValueTask.FromResult(Usage("grep: too many arguments"));
                 }
             }
 
             if (pattern is null)
-                return Usage("grep: missing pattern");
+                return ValueTask.FromResult(Usage("grep: missing pattern"));
 
             Regex expression;
             try
@@ -217,7 +224,7 @@ public sealed class PipelineExecutor
             }
             catch (ArgumentException exception)
             {
-                return Usage($"grep: invalid pattern: {exception.Message}");
+                return ValueTask.FromResult(Usage($"grep: invalid pattern: {exception.Message}"));
             }
 
             List<OutputLine> lines = [];
@@ -256,70 +263,70 @@ public sealed class PipelineExecutor
             }
             catch (RegexMatchTimeoutException)
             {
-                return Usage("grep: pattern evaluation timed out");
+                return ValueTask.FromResult(Usage("grep: pattern evaluation timed out"));
             }
 
-            return new(lines, lines.Count == 0 ? 1 : 0);
+            return ValueTask.FromResult(new CommandResult(lines, lines.Count == 0 ? 1 : 0));
         }
     }
 
     private sealed class HeadFilter() : FilterBase("head")
     {
-        public override CommandResult Execute(CommandInvocation invocation)
+        public override ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default)
         {
             if (!TryReadCount("head", invocation.Arguments, out var count, out var error))
-                return Usage(error);
-            return new(InputLines(invocation).Take(count).ToArray());
+                return ValueTask.FromResult(Usage(error));
+            return ValueTask.FromResult(new CommandResult(InputLines(invocation).Take(count).ToArray()));
         }
     }
 
     private sealed class TailFilter() : FilterBase("tail")
     {
-        public override CommandResult Execute(CommandInvocation invocation)
+        public override ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default)
         {
             if (!TryReadCount("tail", invocation.Arguments, out var count, out var error))
-                return Usage(error);
-            return new(InputLines(invocation).TakeLast(count).ToArray());
+                return ValueTask.FromResult(Usage(error));
+            return ValueTask.FromResult(new CommandResult(InputLines(invocation).TakeLast(count).ToArray()));
         }
     }
 
     private sealed class WcFilter() : FilterBase("wc")
     {
-        public override CommandResult Execute(CommandInvocation invocation)
+        public override ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default)
         {
             if (invocation.Arguments.Count > 1 || (invocation.Arguments.Count == 1 && invocation.Arguments[0] != "-l"))
-                return Usage("wc: only the -l option is supported");
+                return ValueTask.FromResult(Usage("wc: only the -l option is supported"));
 
             var lines = InputLines(invocation);
             if (invocation.Arguments.Count == 1)
-                return new([new TextLine(lines.Count.ToString())]);
+                return ValueTask.FromResult(new CommandResult([new TextLine(lines.Count.ToString())]));
 
             var text = string.Join('\n', lines.Select(line => line.ToPlainText()));
             var words = Regex.Matches(text, @"\S+").Count;
-            return new([new TextLine($"{lines.Count} {words} {text.Length}")]);
+            return ValueTask.FromResult(new CommandResult([new TextLine($"{lines.Count} {words} {text.Length}")]));
         }
     }
 
     private sealed class SortFilter() : FilterBase("sort")
     {
-        public override CommandResult Execute(CommandInvocation invocation)
+        public override ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default)
         {
             if (invocation.Arguments.Any(argument => argument != "-r"))
-                return Usage("sort: only the -r option is supported");
+                return ValueTask.FromResult(Usage("sort: only the -r option is supported"));
             var descending = invocation.Arguments.Contains("-r");
             var ordered = descending
                 ? InputLines(invocation).OrderByDescending(line => line.ToPlainText(), StringComparer.OrdinalIgnoreCase)
                 : InputLines(invocation).OrderBy(line => line.ToPlainText(), StringComparer.OrdinalIgnoreCase);
-            return new(ordered.ToArray());
+            return ValueTask.FromResult(new CommandResult(ordered.ToArray()));
         }
     }
 
     private sealed class UniqFilter() : FilterBase("uniq")
     {
-        public override CommandResult Execute(CommandInvocation invocation)
+        public override ValueTask<CommandResult> ExecuteAsync(CommandInvocation invocation, CancellationToken cancellationToken = default)
         {
             if (invocation.Arguments.Count > 0)
-                return Usage("uniq: no options are supported");
+                return ValueTask.FromResult(Usage("uniq: no options are supported"));
 
             List<OutputLine> lines = [];
             string? previous = null;
@@ -330,7 +337,7 @@ public sealed class PipelineExecutor
                     lines.Add(line);
                 previous = text;
             }
-            return new(lines);
+            return ValueTask.FromResult(new CommandResult(lines));
         }
     }
 

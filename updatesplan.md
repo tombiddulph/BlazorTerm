@@ -214,40 +214,34 @@ Clever conceit, near-zero cost, reuses the timeline data. **Effort:** 4 hours.
 
 Read-only, sanitised view of the Talos cluster.
 
-- [ ] Allowlist resources: pods, nodes, namespaces only
-- [ ] Strip anything identifying — no IPs, no internal hostnames, no secrets
-- [ ] Cache aggressively (30–60s); never hit the API per keystroke
-- [ ] Read-only service account, separate from anything with write scope
-- [ ] Fail closed: if the cluster is unreachable, print a friendly stub
+- [x] Allowlist resources: pods, nodes, namespaces only
+- [x] Strip anything identifying — no IPs, no internal hostnames, no secrets
+- [x] Cache aggressively (30–60s); never hit the API per keystroke
+- [x] Read-only service account, separate from anything with write scope
+- [x] Fail closed: if the cluster is unreachable, print a friendly stub
 
 ⚠️ Only build this if you're confident in the sanitisation. The blast radius of
 getting it wrong is real.
 
 **Effort:** 1 day including hardening.
 
-## 2.5 `ssh guest@tommyb.dev` — the showpiece
+## 2.5 SSH endpoint — removed
 
-The genre's ultimate flex. Harder in .NET than Go — you'd wire up a server-side
-SSH implementation plus a PTY-ish renderer over the same content model.
-
-- [ ] Evaluate SSH server libraries for .NET
-- [ ] Anonymous auth only, no shell escape, hard session timeout
-- [ ] Rate limit and run in an isolated container with no cluster access
-- [ ] Reuse `CommandResult` → ANSI renderer (shares work with the `curl` resume)
-
-`telnet` is the cheap version if SSH proves too much.
-
-**Effort:** multi-weekend. Do last, or not at all.
+The anonymous public SSH endpoint was implemented and evaluated, then removed.
+Operating an additional internet-facing protocol server adds meaningful scanning,
+denial-of-service, dependency, host-key, and deployment risk without improving the
+portfolio enough to justify that exposure. The web terminal demonstrates the same
+parser, pipeline, content, and observability work without running a public daemon.
 
 ---
 
 # Tier 3 — Cheap delight
 
-- [ ] `sudo` → `tom is not in the sudoers file. This incident will be reported.`
-- [ ] `vim` → traps until `:q!` (with a visible hint after ~10s so it isn't cruel)
-- [ ] More themes — nord, solarized, dracula — persisted to `localStorage`
-- [ ] `rides` — recent Strava activity as an ASCII bar chart
-- [ ] `uptime`, `fortune`, `cowsay` if the mood takes you
+- [x] `sudo` → `tom is not in the sudoers file. This incident will be reported.`
+- [x] `vim` → traps until `:q!` (with a visible hint after ~10s so it isn't cruel)
+- [x] More themes — nord, solarized, dracula — persisted to `localStorage`
+- [x] `rides` — recent Strava activity as an ASCII bar chart
+- [x] `uptime`, `fortune`, `cowsay` if the mood takes you
 
 **Effort:** an hour each, mostly.
 
@@ -259,6 +253,7 @@ SSH implementation plus a PTY-ish renderer over the same content model.
 |---|---|
 | `ask` / LLM over the resume | Now the most common portfolio bolt-on. Costs money per visitor, can confidently invent things about your employment history, and signals "called an API" rather than "built something." `trace` is more impressive and more *yours*. |
 | Matrix rain screensaver | Every terminal portfolio has one. Visual equivalent of a stock photo. |
+| Public SSH or telnet endpoint | Adds an anonymous internet-facing daemon, protocol attack surface, host-key operations, and denial-of-service risk for limited additional portfolio value. |
 
 ---
 
@@ -278,10 +273,10 @@ SSH implementation plus a PTY-ish renderer over the same content model.
 
 ## Cross-cutting checks
 
-- [ ] Every new command returns `CommandResult` — no exceptions
-- [ ] Every new command is tab-completable and appears in the grouped `help`
-- [ ] Nothing new bloats the initial HTML or blocks first paint
-- [ ] Anything hitting live infrastructure is cached, read-only, and fails closed
-- [ ] Output regions stay `aria-live` friendly — ASCII art needs
+- [x] Every new command returns `CommandResult` — no exceptions
+- [x] Every new command is tab-completable and appears in the grouped `help`
+- [x] Nothing new bloats the initial HTML or blocks first paint
+- [x] Anything hitting live infrastructure is cached, read-only, and fails closed
+- [x] Output regions stay `aria-live` friendly — ASCII art needs
       `aria-hidden` plus a text alternative
-- [ ] ASCII waterfalls and charts need a sensible narrow-viewport fallback
+- [x] ASCII waterfalls and charts need a sensible narrow-viewport fallback

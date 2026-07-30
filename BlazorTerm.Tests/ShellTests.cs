@@ -55,10 +55,10 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void Grep_PreservesRichLinesAndHighlightsMatches()
+    public async Task Grep_PreservesRichLinesAndHighlightsMatches()
     {
         var link = new LinkLine("Azure project", "/projects/azure", LinkKind.Web) { Style = "accent" };
-        var result = Execute(
+        var result = await Execute(
             [link, new TextLine("C# and .NET"), new TextLine("azure messaging")],
             new CommandSegment("grep", ["-i", "azure"]));
 
@@ -72,9 +72,9 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void Grep_InvertsMatches()
+    public async Task Grep_InvertsMatches()
     {
-        var result = Execute(
+        var result = await Execute(
             [new TextLine("Azure"), new TextLine(".NET")],
             new CommandSegment("grep", ["-iv", "azure"]));
 
@@ -82,11 +82,11 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void Grep_HighlightsAHelpDescriptionWithoutFlatteningItsCommand()
+    public async Task Grep_HighlightsAHelpDescriptionWithoutFlatteningItsCommand()
     {
         var help = new HelpLine("resume", "Terminal-formatted Azure CV", "resume", LinkKind.Command);
 
-        var result = Execute([help], new CommandSegment("grep", ["Azure"]));
+        var result = await Execute([help], new CommandSegment("grep", ["Azure"]));
 
         var matched = Assert.IsType<HelpLine>(Assert.Single(result.Lines));
         Assert.Equal(LinkKind.Command, matched.Kind);
@@ -95,21 +95,21 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void HeadAndTail_SelectRequestedLines()
+    public async Task HeadAndTail_SelectRequestedLines()
     {
         OutputLine[] input = [new TextLine("one"), new TextLine("two"), new TextLine("three")];
 
-        var head = Execute(input, new CommandSegment("head", ["-n", "2"]));
-        var tail = Execute(input, new CommandSegment("tail", ["-n1"]));
+        var head = await Execute(input, new CommandSegment("head", ["-n", "2"]));
+        var tail = await Execute(input, new CommandSegment("tail", ["-n1"]));
 
         Assert.Equal(["one", "two"], PlainText(head));
         Assert.Equal(["three"], PlainText(tail));
     }
 
     [Fact]
-    public void SortAndUniqComposeLeftToRight()
+    public async Task SortAndUniqComposeLeftToRight()
     {
-        var result = Execute(
+        var result = await Execute(
             [new TextLine("beta"), new TextLine("alpha"), new TextLine("beta")],
             new CommandSegment("sort", []),
             new CommandSegment("uniq", []));
@@ -118,9 +118,9 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void ThreeStagePipeline_ThreadsResults()
+    public async Task ThreeStagePipeline_ThreadsResults()
     {
-        var result = Execute(
+        var result = await Execute(
             [new TextLine("Azure"), new TextLine(".NET"), new TextLine("Azure Functions")],
             new CommandSegment("grep", ["-i", "azure"]),
             new CommandSegment("wc", ["-l"]));
@@ -129,12 +129,12 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void Pipeline_RejectsACommandInFilterPosition()
+    public async Task Pipeline_RejectsACommandInFilterPosition()
     {
         var executor = new PipelineExecutor();
         CommandSegment[] segments = [new("resume", []), new("resume", [])];
 
-        var result = executor.Execute(
+        var result = await executor.ExecuteAsync(
             segments,
             name => name == "resume" ? new DelegateCommand(_ => new([new TextLine("resume")])) : null);
 
@@ -143,17 +143,40 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public void Pipeline_AbortsAfterANonZeroResult()
+    public async Task Pipeline_AbortsAfterANonZeroResult()
     {
         var executor = new PipelineExecutor();
         CommandSegment[] segments = [new("source", []), new("grep", ["missing"]), new("wc", ["-l"])];
 
-        var result = executor.Execute(
+        var result = await executor.ExecuteAsync(
             segments,
             name => name == "source" ? new DelegateCommand(_ => new([new TextLine("present")])) : null);
 
         Assert.Equal(1, result.ExitCode);
         Assert.Empty(result.Lines);
+    }
+
+    [Fact]
+    public async Task Pipeline_AwaitsAsyncCommandsBeforeRunningFilters()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var executor = new PipelineExecutor();
+        CommandSegment[] segments = [new("source", []), new("wc", ["-l"])];
+        var execution = executor.ExecuteAsync(
+            segments,
+            name => name == "source"
+                ? new DelegateCommand(async (_, cancellationToken) =>
+                {
+                    await release.Task.WaitAsync(cancellationToken);
+                    return new([new TextLine("one"), new TextLine("two")]);
+                })
+                : null);
+
+        Assert.False(execution.IsCompleted);
+        release.SetResult();
+
+        var result = await execution;
+        Assert.Equal("2", Assert.Single(result.Lines).ToPlainText());
     }
 
     [Fact]
@@ -168,11 +191,11 @@ public sealed class ShellTests
         Assert.DoesNotContain(resume.Concat(contact), line => line.Contains('<') || line.Contains('>'));
     }
 
-    private static CommandResult Execute(IReadOnlyList<OutputLine> input, params CommandSegment[] filters)
+    private static ValueTask<CommandResult> Execute(IReadOnlyList<OutputLine> input, params CommandSegment[] filters)
     {
         var executor = new PipelineExecutor();
         var segments = new[] { new CommandSegment("source", []) }.Concat(filters).ToArray();
-        return executor.Execute(segments, name => name == "source" ? new DelegateCommand(_ => new(input)) : null);
+        return executor.ExecuteAsync(segments, name => name == "source" ? new DelegateCommand(_ => new(input)) : null);
     }
 
     private static string[] PlainText(CommandResult result) => result.Lines.Select(line => line.ToPlainText()).ToArray();

@@ -1,7 +1,38 @@
+// Firefox does not support `field-sizing: content`, which the block cursor
+// relies on to sit at the end of the typed text. Mirror the value length into
+// an explicit ch width there instead.
+const needsWidthFallback = !(window.CSS && CSS.supports("field-sizing", "content"));
+
+function syncInputWidth(input) {
+    if (!needsWidthFallback || !input) return;
+    input.style.width = Math.max(1, input.value.length) + "ch";
+}
+
 window.terminalUi = {
+    startBoot: function () {
+        startTerminalBoot();
+    },
+    initializeTheme: function (currentTheme, preferCurrent) {
+        const validThemes = ["theme-green", "theme-amber", "theme-nord", "theme-solarized", "theme-dracula"];
+        let selected = currentTheme;
+        try {
+            const stored = localStorage.getItem("blazorterm-theme");
+            if (!preferCurrent && validThemes.includes(stored)) selected = stored;
+            localStorage.setItem("blazorterm-theme", selected);
+        } catch { }
+        document.documentElement.dataset.terminalTheme = selected;
+        return selected;
+    },
+    storeTheme: function (theme) {
+        try { localStorage.setItem("blazorterm-theme", theme); } catch { }
+        document.documentElement.dataset.terminalTheme = theme;
+    },
     clear: function (inputId) {
         const input = document.getElementById(inputId);
-        if (input) input.value = "";
+        if (input) {
+            input.value = "";
+            syncInputWidth(input);
+        }
     },
     focus: function (inputId) {
         const input = document.getElementById(inputId);
@@ -23,12 +54,27 @@ const dismissButton = blazorError?.querySelector(".dismiss");
 reloadButton?.addEventListener("click", () => location.reload());
 dismissButton?.addEventListener("click", () => blazorError.style.display = "none");
 
+function startTerminalBoot() {
+    const overlay = document.getElementById("terminal-boot");
+    const windowElement = overlay?.closest(".terminal-window");
+    if (!overlay || !windowElement || !document.documentElement.classList.contains("terminal-boot-pending")) return;
+
+    windowElement.classList.add("booting");
+    requestAnimationFrame(() => overlay.classList.add("is-running"));
+    setTimeout(() => {
+        document.documentElement.classList.remove("terminal-boot-pending");
+        overlay.classList.remove("is-running");
+        windowElement.classList.remove("booting");
+    }, 3000);
+}
+
 document.addEventListener("keydown", function (event) {
     if (!event.target || event.target.id !== "terminal-input") return;
 
     if (event.key === "Tab") {
         event.preventDefault();
-        completeInput(event.target);
+        if (event.target.dataset.vimMode !== "true") completeInput(event.target);
+        syncInputWidth(event.target);
         event.stopImmediatePropagation();
         return;
     }
@@ -36,18 +82,30 @@ document.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
         event.target.dispatchEvent(new Event("change", { bubbles: true }));
         event.target.value = "";
+        syncInputWidth(event.target);
         return;
     }
 
     if (event.key === "ArrowUp" || event.key === "ArrowDown" ||
         (event.ctrlKey && event.key.toLowerCase() === "l")) {
         event.preventDefault();
+        // History recall replaces the value after a server round trip, which
+        // fires no input event; re-sync shortly after.
+        if (needsWidthFallback) {
+            const input = event.target;
+            [50, 150, 400].forEach(delay => setTimeout(() => syncInputWidth(input), delay));
+        }
         return;
     }
 
     // Blazor handles commands, not individual characters. Keeping ordinary
     // key events local prevents delayed server renders from replacing newer input.
     event.stopImmediatePropagation();
+});
+
+document.addEventListener("input", function (event) {
+    if (event.target && event.target.id === "terminal-input")
+        syncInputWidth(event.target);
 });
 
 // Mobile browsers only open the software keyboard when focus occurs directly
@@ -84,6 +142,12 @@ function completeInput(input) {
         dataName = "pathCompletions";
     } else if (command === "trace") {
         dataName = "commandCompletions";
+    } else if (command === "help") {
+        dataName = "helpCompletions";
+    } else if (command === "man") {
+        dataName = "manCompletions";
+    } else if (command === "tour") {
+        dataName = "tourCompletions";
     }
     const options = (input.dataset[dataName] || "").split(",").filter(Boolean);
     const matches = options.filter(option => option.toLowerCase().startsWith(prefix.toLowerCase()));

@@ -5,6 +5,9 @@
 @inject NavigationManager Navigation
 @inject TerminalTelemetry Telemetry
 @inject IConfiguration Configuration
+@inject IKubernetesReader Kubernetes
+@inject IStravaReader Strava
+@implements IDisposable
 
 <PageTitle>@TerminalContent.PageTitle</PageTitle>
 <HeadContent>
@@ -39,12 +42,63 @@
         </header>
 
         <div class="workspace">
+            <div id="terminal-boot" class="terminal-boot" aria-hidden="true">
+                <div class="boot-grid"></div>
+                <svg class="boot-topology" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet">
+                    <g class="boot-links">
+                        <path id="boot-link-input" d="M220 255 H315" />
+                        <path id="boot-link-parser" d="M425 255 H575" />
+                        <path id="boot-link-output" d="M685 255 H855" />
+                        <path id="boot-link-otel" d="M630 305 V405" />
+                    </g>
+                    <g class="boot-node node-input" transform="translate(70 205)">
+                        <rect width="150" height="100" rx="8" />
+                        <text x="75" y="45">INPUT</text>
+                        <text class="boot-node-detail" x="75" y="68">command stream</text>
+                    </g>
+                    <g class="boot-node node-parser" transform="translate(315 205)">
+                        <rect width="110" height="100" rx="8" />
+                        <text x="55" y="45">PARSE</text>
+                        <text class="boot-node-detail" x="55" y="68">tokens + pipes</text>
+                    </g>
+                    <g class="boot-node node-pipeline" transform="translate(575 205)">
+                        <rect width="110" height="100" rx="8" />
+                        <text x="55" y="45">EXEC</text>
+                        <text class="boot-node-detail" x="55" y="68">async pipeline</text>
+                    </g>
+                    <g class="boot-node node-output" transform="translate(855 205)">
+                        <rect width="110" height="100" rx="8" />
+                        <text x="55" y="45">RENDER</text>
+                        <text class="boot-node-detail" x="55" y="68">structured output</text>
+                    </g>
+                    <g class="boot-node node-otel" transform="translate(545 405)">
+                        <rect width="170" height="72" rx="8" />
+                        <text x="85" y="32">OBSERVE</text>
+                        <text class="boot-node-detail" x="85" y="52">OpenTelemetry</text>
+                    </g>
+                    <circle class="boot-pulse pulse-one" r="6">
+                        <animateMotion dur="1.7s" begin="0.45s" repeatCount="2" path="M220 255 H315" />
+                    </circle>
+                    <circle class="boot-pulse pulse-two" r="6">
+                        <animateMotion dur="1.4s" begin="0.9s" repeatCount="2" path="M425 255 H575" />
+                    </circle>
+                    <circle class="boot-pulse pulse-three" r="6">
+                        <animateMotion dur="1.25s" begin="1.25s" repeatCount="2" path="M685 255 H855" />
+                    </circle>
+                    <circle class="boot-pulse pulse-otel" r="6">
+                        <animateMotion dur="0.8s" begin="1.55s" repeatCount="2" path="M630 305 V405" />
+                    </circle>
+                </svg>
+                <div class="boot-kicker">BLAZORTERM / LIVE EXECUTION GRAPH</div>
+                <div class="boot-status"><span></span> parser online / telemetry linked / shell ready</div>
+                <div class="boot-scanline"></div>
+            </div>
             <div class="terminal" id="terminal-output">
                 <div class="terminal-log" role="log" aria-live="polite" aria-relevant="additions text">
                     <div class="session-intro">
                         <div class="login-line">Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
                         <div class="identity-line"><strong>@TerminalContent.DisplayName</strong><span>Senior Software Engineer / C# + Backend</span></div>
-                        <div class="intro-hint">Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
+                        <div class="intro-hint">Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, view the <a href="/resume">plain resume</a>, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
                     </div>
 
                     @foreach (var entry in Entries)
@@ -93,6 +147,22 @@
                                         }
                                     </div>
                                 }
+                                else if (line is ChartLine chartLine)
+                                {
+                                    <div class="output-line chart-line @line.Style" aria-label="@chartLine.AccessibleText">
+                                        <span class="chart-visual" aria-hidden="true">
+                                            <span class="chart-label">@chartLine.Label</span>
+                                            <span class="chart-bar">@chartLine.Bar</span>
+                                            <span class="chart-value">@chartLine.Value</span>
+                                        </span>
+                                    </div>
+                                }
+                                else if (line is AsciiArtLine asciiArtLine)
+                                {
+                                    <div class="output-line @line.Style" role="img" aria-label="@asciiArtLine.AccessibleText">
+                                        <pre class="ascii-art" aria-hidden="true">@asciiArtLine.Text</pre>
+                                    </div>
+                                }
                                 else
                                 {
                                     <div class="output-line @line.Style">
@@ -113,6 +183,15 @@
                             }
                         </div>
                     }
+
+                    @if (_vimMode)
+                    {
+                        <section class="vim-mode" aria-label="Vim interaction mode">
+                            <div class="vim-buffer" aria-hidden="true">~<br />~<br />~<br />~</div>
+                            <div class="vim-status">"portfolio.txt" [readonly] 1L, 35B</div>
+                            <div class="vim-message" role="status" aria-live="polite">@_vimMessage</div>
+                        </section>
+                    }
                 </div>
 
                 <label class="prompt-row active-prompt" for="terminal-input">
@@ -122,20 +201,24 @@
                            value="@Input"
                            @onchange="UpdateInput"
                            @onkeydown="HandleKeyDown"
-                           data-command-completions="@string.Join(',', Commands)"
-                           data-filter-completions="@string.Join(',', Pipeline.FilterNames)"
+                           data-command-completions="@string.Join(',', CommandCatalog.CompletionNames)"
+                           data-filter-completions="@string.Join(',', CommandCatalog.FilterNames)"
+                           data-help-completions="@string.Join(',', CommandCatalog.HelpCategories.Select(group => group.Name))"
+                           data-man-completions="@string.Join(',', CommandCatalog.ManualNames)"
+                           data-tour-completions="next,previous,stop,1,2,3,4,5,6"
                            data-path-completions="@string.Join(',', VirtualFileSystem.Completions(CurrentPath))"
                            data-directory-completions="@string.Join(',', VirtualFileSystem.Completions(CurrentPath, directoriesOnly: true))"
                            data-project-completions="@string.Join(',', TerminalContent.Projects.Select(project => project.Slug))"
+                           data-vim-mode="@_vimMode.ToString().ToLowerInvariant()"
                            autocomplete="off"
                            autocapitalize="off"
                            enterkeyhint="send"
                            inputmode="text"
                            spellcheck="false"
-                           aria-label="Terminal command" />
+                           aria-label="@(_vimMode ? "Vim command; type colon q exclamation mark to exit" : "Terminal command")" />
                     <span class="cursor" aria-hidden="true"></span>
                 </label>
-                <nav class="command-chips" aria-label="Suggested terminal commands">
+                <nav class="command-chips" aria-label="Suggested terminal commands" hidden="@_vimMode">
                     @foreach (var command in SuggestedCommands)
                     {
                         <button type="button" @onclick="() => RunShortcut(command)">@command</button>
@@ -148,6 +231,7 @@
             <span><kbd>↑</kbd><kbd>↓</kbd> HISTORY</span>
             <span><kbd>TAB</kbd> COMPLETE</span>
             <span><kbd>CTRL</kbd> + <kbd>L</kbd> CLEAR</span>
+            <a class="footer-resume" href="/resume">PLAIN RESUME</a>
             <span class="footer-location">@TerminalContent.Owner@@@TerminalContent.Host:@CurrentPath</span>
         </footer>
     </section>
@@ -156,33 +240,19 @@
 <PortfolioOverview Class="semantic-fallback" />
 
 @code {
-    private static readonly string[] Commands =
-    [
-        "help", "neofetch", "man", "about", "resume", "stack", "hosting", "timeline", "status",
-        "experience", "education", "skills", "projects", "project", "contributions",
-        "contact", "github", "linkedin", "open", "history", "ls", "cat", "cd", "pwd", "tree",
-        "whoami", "who", "date", "version", "git", "clear", "theme", "gui", "telemetry", "trace", "coffee", "fortune", "sudo",
-        "grep", "head", "tail", "wc", "sort", "uniq"
-    ];
-
     private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact", "telemetry"];
-
-    private static readonly IReadOnlyDictionary<string, string> Aliases =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["?"] = "help",
-            ["bio"] = "about",
-            ["cv"] = "resume",
-            ["repos"] = "projects",
-            ["oss"] = "contributions",
-            ["work"] = "experience",
-            ["cls"] = "clear"
-        };
 
     private static readonly PipelineExecutor Pipeline = new();
 
     private int _historyIndex;
     private bool _shouldFocus = true;
+    private readonly CancellationTokenSource _commandCancellation = new();
+    private CancellationTokenSource? _vimHintCancellation;
+    private bool _vimMode;
+    private bool _themeNeedsStorage;
+    private string _vimMessage = "VIM - Vi IMproved";
+
+    private static readonly string[] Themes = ["green", "amber", "nord", "solarized", "dracula"];
 
     [PersistentState]
     public TerminalSession? PersistedSession { get; set; }
@@ -197,22 +267,39 @@
     private string Theme { get => Session.Theme; set => Session.Theme = value; }
     private string CurrentPath { get => Session.CurrentPath; set => Session.CurrentPath = value; }
     private DateTimeOffset SessionStarted => Session.Started;
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _historyIndex = CommandHistory.Count;
 
         if (Entries.Count == 0 && CommandHistory.Count == 0)
         {
-            Execute("neofetch");
-            Execute("whoami");
+            await ExecuteAsync("neofetch");
+            await ExecuteAsync("whoami");
 
             if (!string.IsNullOrWhiteSpace(RequestedCommand) && RequestedCommand.Length <= 100)
-                Execute(RequestedCommand);
+                await ExecuteAsync(RequestedCommand);
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            var selectedTheme = await JS.InvokeAsync<string>("terminalUi.initializeTheme", Theme, _themeNeedsStorage);
+            await JS.InvokeVoidAsync("terminalUi.startBoot");
+            _themeNeedsStorage = false;
+            if (!selectedTheme.Equals(Theme, StringComparison.Ordinal))
+            {
+                Theme = selectedTheme;
+                StateHasChanged();
+            }
+        }
+        else if (_themeNeedsStorage)
+        {
+            _themeNeedsStorage = false;
+            await JS.InvokeVoidAsync("terminalUi.storeTheme", Theme);
+        }
+
         if (_shouldFocus)
         {
             _shouldFocus = false;
@@ -227,6 +314,16 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs args)
     {
+        if (_vimMode)
+        {
+            if (args.Key == "Enter")
+            {
+                HandleVimInput(Input);
+                await RequestFocus();
+            }
+            return;
+        }
+
         if (args.CtrlKey && args.Key.Equals("l", StringComparison.OrdinalIgnoreCase))
         {
             Entries.Clear();
@@ -239,7 +336,7 @@
         switch (args.Key)
         {
             case "Enter":
-                Execute(Input);
+                await ExecuteAsync(Input);
                 await RequestFocus();
                 break;
             case "ArrowUp":
@@ -260,7 +357,7 @@
 
     private async Task RunShortcut(string command)
     {
-        Execute(command);
+        await ExecuteAsync(command);
         await JS.InvokeVoidAsync("terminalUi.clear", "terminal-input");
         await RequestFocus();
     }
@@ -272,10 +369,16 @@
         return Task.CompletedTask;
     }
 
-    private void Execute(string rawCommand)
+    private async Task ExecuteAsync(string rawCommand)
     {
         var fullCommand = rawCommand.Trim();
         Input = string.Empty;
+
+        if (_vimMode)
+        {
+            HandleVimInput(fullCommand);
+            return;
+        }
 
         if (fullCommand.Length == 0)
             return;
@@ -295,7 +398,7 @@
 
         var segments = parsedSegments.ToArray();
         var first = segments[0];
-        segments[0] = first with { Name = Aliases.GetValueOrDefault(first.Name, first.Name) };
+        segments[0] = first with { Name = CommandCatalog.Aliases.GetValueOrDefault(first.Name, first.Name) };
 
         if (segments.Length == 1 && segments[0].Name == "gui")
         {
@@ -303,44 +406,52 @@
             return;
         }
 
-        var result = Pipeline.Execute(
+        var result = await Pipeline.ExecuteAsync(
             segments,
-            command => Commands.Contains(command, StringComparer.OrdinalIgnoreCase)
-                ? new DelegateCommand(invocation => RunCommand(command, invocation.Arguments.ToArray()))
-                : null);
+            command => CommandCatalog.CommandNames.Contains(command, StringComparer.OrdinalIgnoreCase)
+                ? new DelegateCommand((invocation, cancellationToken) => RunCommandAsync(command, invocation.Arguments.ToArray(), cancellationToken))
+                : null,
+            _commandCancellation.Token);
 
         if (segments[0].Name != "clear")
             Entries.Add(new HistoryEntry(fullCommand, executionPath, result));
     }
 
-    private CommandResult RunCommand(string command, string[] arguments)
+    private async ValueTask<CommandResult> RunCommandAsync(string command, string[] arguments, CancellationToken cancellationToken)
     {
         if (command == "trace")
-            return TraceCommand(arguments);
+            return await TraceCommandAsync(arguments, cancellationToken);
 
         using var commandActivity = TerminalActivities.Source.StartActivity("command.execute");
         commandActivity?.SetTag("command.name", command);
         commandActivity?.SetTag("command.argument.count", arguments.Length);
 
-        IReadOnlyList<OutputLine> lines;
+        CommandResult loadedResult;
         using (var contentActivity = TerminalActivities.Source.StartActivity("content.load"))
         {
             contentActivity?.SetTag("content.command", command);
-            lines = RunCommandLines(command, arguments);
-            contentActivity?.SetTag("content.line.count", lines.Count);
+            loadedResult = command switch
+            {
+                "kubectl" => await KubectlLinesAsync(arguments, cancellationToken),
+                "rides" => await Strava.GetRidesAsync(cancellationToken),
+                _ => new CommandResult(RunCommandLines(command, arguments))
+            };
+            contentActivity?.SetTag("content.line.count", loadedResult.Lines.Count);
         }
 
         using var formatActivity = TerminalActivities.Source.StartActivity("output.format");
-        var exitCode = lines.Any(line => line.Style == "error") ? 1 : 0;
-        formatActivity?.SetTag("output.line.count", lines.Count);
+        var exitCode = loadedResult.ExitCode != 0
+            ? loadedResult.ExitCode
+            : loadedResult.Lines.Any(line => line.Style == "error") ? 1 : 0;
+        formatActivity?.SetTag("output.line.count", loadedResult.Lines.Count);
         formatActivity?.SetTag("output.exit.code", exitCode);
         commandActivity?.SetTag("command.exit.code", exitCode);
         if (exitCode != 0)
-            commandActivity?.SetStatus(ActivityStatusCode.Error, lines.FirstOrDefault()?.ToPlainText());
-        return new(lines, exitCode);
+            commandActivity?.SetStatus(ActivityStatusCode.Error, loadedResult.Lines.FirstOrDefault()?.ToPlainText());
+        return loadedResult with { ExitCode = exitCode };
     }
 
-    private CommandResult TraceCommand(string[] arguments)
+    private async ValueTask<CommandResult> TraceCommandAsync(string[] arguments, CancellationToken cancellationToken)
     {
         var verbose = arguments.Length > 0 && arguments[0] == "-v";
         var commandIndex = verbose ? 1 : 0;
@@ -348,7 +459,7 @@
             return new([Line("trace: missing command", "error"), Line("usage: trace [-v] <command>")], 2);
 
         var command = arguments[commandIndex].ToLowerInvariant();
-        command = Aliases.GetValueOrDefault(command, command);
+        command = CommandCatalog.Aliases.GetValueOrDefault(command, command);
         if (command == "trace")
             return new([Line("trace: refusing to trace trace recursively", "error")], 2);
 
@@ -365,7 +476,7 @@
         CommandResult result;
         try
         {
-            result = RunCommand(command, arguments[(commandIndex + 1)..]);
+            result = await RunCommandAsync(command, arguments[(commandIndex + 1)..], cancellationToken);
             root.SetTag("command.exit.code", result.ExitCode);
             root.SetStatus(result.ExitCode == 0 ? ActivityStatusCode.Ok : ActivityStatusCode.Error);
         }
@@ -390,55 +501,13 @@
         switch (command)
         {
             case "help":
-                return new[]
-                {
-                    Line("AVAILABLE COMMANDS", "heading"),
-                    Line("PROFILE", "help-heading"),
-                    HelpLink("about", "A short introduction", "about"),
-                    HelpLink("resume", "Terminal-formatted CV", "resume"),
-                    HelpLink("experience", "Professional history", "experience"),
-                    HelpLink("stack", "Technologies and specialisms", "stack"),
-                    HelpLink("timeline", "Career history at a glance", "timeline"),
-                    HelpLink("education", "Degree and university", "education"),
-                    Line(string.Empty),
-                    Line("NAVIGATE", "help-heading"),
-                    HelpLink("projects", "Selected GitHub projects", "projects"),
-                    HelpLink("project <name>", "Open a project case study", "project service-bus-explorer"),
-                    HelpLink("contributions", "Open-source contributions", "contributions"),
-                    HelpLink("contact", "Ways to get in touch", "contact"),
-                    HelpLink("gui", "Open the plain web resume", "gui"),
-                    HelpExternal("github", "Open my GitHub profile", TerminalContent.GitHubUrl),
-                    HelpExternal("linkedin", "Open my LinkedIn profile", TerminalContent.LinkedInUrl),
-                    Line(string.Empty),
-                    Line("SYSTEM", "help-heading"),
-                    HelpLink("ls", "List files", "ls"),
-                    HelpLink("cat <file>", "Read a file", "cat about.txt"),
-                    HelpLine("cd <directory>", "Change working directory"),
-                    HelpLine("pwd", "Print working directory"),
-                    HelpLine("tree [path]", "Show the filesystem tree"),
-                    HelpLine("whoami", "Print the current user"),
-                    HelpLine("date", "Print server time"),
-                    HelpLine("version", "Build provenance and runtime details"),
-                    HelpLine("who", "Anonymous connection and session details"),
-                    HelpLine("git log --oneline", "Browse career history as commits"),
-                    HelpLink("history", "Show this session's commands", "history"),
-                    HelpLine("theme <name>", "Switch between green and amber"),
-                    HelpLine("clear", "Clear the terminal"),
-                    HelpLink("telemetry", "Live application health", "telemetry"),
-                    HelpLine("trace [-v] <command>", "Render a command's activity waterfall"),
-                    Line(string.Empty),
-                    Line("FILTERS", "help-heading"),
-                    HelpLine("grep [-i] [-v] <pattern>", "Filter lines by a regular expression"),
-                    HelpLine("head [-n count]", "Show the first lines"),
-                    HelpLine("tail [-n count]", "Show the last lines"),
-                    HelpLine("wc [-l]", "Count lines, words, and characters"),
-                    HelpLine("sort [-r]", "Sort lines"),
-                    HelpLine("uniq", "Remove adjacent duplicate lines")
-                };
+                return HelpLines(arguments);
             case "neofetch":
                 return NeofetchLines();
             case "man":
                 return ManLines(arguments);
+            case "tour":
+                return TourLines(arguments);
             case "about":
             case "experience":
             case "education":
@@ -479,6 +548,8 @@
                 return WhoLines();
             case "date":
                 return new[] { Line(DateTimeOffset.Now.ToString("ddd MMM dd HH:mm:ss zzz yyyy")) };
+            case "uptime":
+                return UptimeLines();
             case "version":
                 return VersionLines();
             case "git":
@@ -495,8 +566,12 @@
                 return CoffeeLines();
             case "fortune":
                 return FortuneLines();
+            case "cowsay":
+                return CowsayLines(arguments);
             case "sudo":
                 return new[] { Line("tom is not in the sudoers file. This incident will be reported.", "error") };
+            case "vim":
+                return EnterVim(arguments);
             case "clear":
                 Entries.Clear();
                 return Array.Empty<OutputLine>();
@@ -505,6 +580,54 @@
             default:
                 return UnknownCommandLines(command);
         }
+    }
+
+    private ValueTask<CommandResult> KubectlLinesAsync(string[] arguments, CancellationToken cancellationToken)
+    {
+        if (arguments.Length != 2 || arguments[0] != "get" || arguments[1] is not ("pods" or "nodes" or "namespaces"))
+            return ValueTask.FromResult(new CommandResult(
+                [Line("kubectl: only 'get pods', 'get nodes', and 'get namespaces' are available", "error")], 2));
+        return Kubernetes.GetAsync(arguments[1], cancellationToken);
+    }
+
+    private static IReadOnlyList<OutputLine> HelpLines(string[] arguments)
+    {
+        if (arguments.Length > 1)
+            return [Line("usage: help [profile|portfolio|files|system|filters|fun]", "error")];
+
+        if (arguments.Length == 0)
+        {
+            List<OutputLine> index =
+            [
+                Line("HELP / COMMAND GROUPS", "heading"),
+                Line("Choose a group for its commands. Tab completion works everywhere."),
+                Line(string.Empty)
+            ];
+            index.AddRange(CommandCatalog.HelpCategories.Select(category =>
+                HelpLink($"help {category.Name}", category.Description, $"help {category.Name}")));
+            index.Add(Line(string.Empty));
+            index.Add(Line("POPULAR", "help-heading"));
+            foreach (var name in new[] { "tour", "resume", "projects", "telemetry" })
+                index.Add(CatalogHelpLine(CommandCatalog.Find(name)!));
+            return index;
+        }
+
+        var category = CommandCatalog.FindCategory(arguments[0]);
+        if (category is null)
+            return
+            [
+                Line($"help: unknown group '{arguments[0]}'", "error"),
+                Line("groups: " + string.Join(", ", CommandCatalog.HelpCategories.Select(group => group.Name)))
+            ];
+
+        List<OutputLine> lines = [Line($"HELP / {category.Name.ToUpperInvariant()}", "heading")];
+        if (category.Category == CommandCategory.Filters)
+        {
+            lines.Add(Line("Example: resume | grep -i azure | wc -l"));
+            lines.Add(Line(string.Empty));
+        }
+        lines.AddRange(CommandCatalog.Entries.Where(entry => entry.Category == category.Category).Select(CatalogHelpLine));
+        return lines;
     }
 
     private IReadOnlyList<OutputLine> ReadFile(string fileName)
@@ -629,13 +752,17 @@
     private IReadOnlyList<OutputLine> SetTheme(string[] arguments)
     {
         if (arguments.Length == 0)
-            return new[] { Line("Themes: green, amber. Current: " + Theme.Replace("theme-", string.Empty)) };
+            return new[] { Line($"Themes: {string.Join(", ", Themes)}. Current: {Theme.Replace("theme-", string.Empty)}") };
+
+        if (arguments.Length > 1)
+            return new[] { Line("theme: too many arguments", "error") };
 
         var requested = arguments[0].ToLowerInvariant();
-        if (requested != "green" && requested != "amber")
-            return new[] { Line("theme: choose 'green' or 'amber'", "error") };
+        if (!Themes.Contains(requested, StringComparer.Ordinal))
+            return new[] { Line($"theme: choose {string.Join(", ", Themes.Select(theme => $"'{theme}'"))}", "error") };
 
         Theme = "theme-" + requested;
+        _themeNeedsStorage = true;
         return new[] { Line("Theme changed to " + requested + ".") };
     }
 
@@ -644,7 +771,7 @@
         return
         [
             Line("GITHUB / tombiddulph", "heading"),
-            Line("35 public repositories / 2 public gists / member since 2016"),
+            Line("Developer tooling projects and OpenTelemetry contributions"),
             External("github.com/tombiddulph", TerminalContent.GitHubUrl),
             Link("run: projects", "projects"),
             Link("run: contributions", "contributions")
@@ -656,28 +783,125 @@
         return [new RawLine(string.Empty, RawLineKind.Neofetch)];
     }
 
+    private IReadOnlyList<OutputLine> TourLines(string[] arguments)
+    {
+        if (arguments.Length > 1)
+            return [Line("tour: too many arguments", "error"), Line("usage: tour [next|previous|<number>|stop]")];
+
+        var control = arguments.Length == 0 ? string.Empty : arguments[0].ToLowerInvariant();
+        if (control == "stop")
+        {
+            Session.TourStep = 0;
+            return [Line("Tour stopped. Run 'tour' whenever you want to resume.")];
+        }
+
+        if (control == string.Empty)
+            Session.TourStep = Session.TourStep is >= 1 and <= 6 ? Session.TourStep : 1;
+        else if (control == "next")
+            Session.TourStep = Session.TourStep is >= 1 and < 6 ? Session.TourStep + 1 : Session.TourStep == 6 ? 6 : 1;
+        else if (control == "previous")
+            Session.TourStep = Session.TourStep is > 1 and <= 6 ? Session.TourStep - 1 : 1;
+        else if (int.TryParse(control, out var requestedStep) && requestedStep is >= 1 and <= 6)
+            Session.TourStep = requestedStep;
+        else
+            return [Line($"tour: unknown step or control '{arguments[0]}'", "error"), Line("usage: tour [next|previous|1|2|3|4|5|6|stop]")];
+
+        (string Title, string Description, string Command, string Label)[] steps =
+        [
+            ("PROFILE", "Meet Tom and inspect the terminal CV.", "about", "run: about"),
+            ("PROJECTS", "Browse selected work and open a project case study.", "projects", "run: projects"),
+            ("PIPES", "Compose output with the six shell-style filters.", "resume | grep -i azure | head -n 3", "run: resume | grep -i azure | head -n 3"),
+            ("TRACE", "Inspect the real activity waterfall for a local command.", "trace resume", "run: trace resume"),
+            ("FILESYSTEM", "Explore the content-backed virtual filesystem.", "tree", "run: tree"),
+            ("FINISH", "Keep exploring through concise help or generated manuals.", "help", "run: help")
+        ];
+        var step = steps[Session.TourStep - 1];
+        List<OutputLine> lines =
+        [
+            Line($"TOUR {Session.TourStep}/6 / {step.Title}", "heading"),
+            Line(step.Description),
+            Link(step.Label, step.Command),
+            Line(string.Empty)
+        ];
+        if (Session.TourStep > 1)
+            lines.Add(Link("previous", "tour previous"));
+        if (Session.TourStep < 6)
+            lines.Add(Link("next", "tour next"));
+        else
+            lines.Add(Link("finish tour", "tour stop"));
+        lines.Add(Link("stop", "tour stop"));
+        return lines;
+    }
+
     private static IReadOnlyList<OutputLine> ManLines(string[] arguments)
     {
-        if (arguments.Length > 0 && !arguments[0].Equals("tom", StringComparison.OrdinalIgnoreCase))
-            return [Line("No manual entry for " + arguments[0], "error")];
+        if (arguments.Length == 0)
+            return [Line("man: missing manual name", "error"), Line("usage: man <command>")];
+        if (arguments.Length > 1)
+            return [Line("man: too many arguments", "error"), Line("usage: man <command>")];
 
-        return
+        var requested = arguments[0];
+        if (requested.Equals("tom", StringComparison.OrdinalIgnoreCase))
+        {
+            return
+            [
+                Line("TOM(1)                       PORTFOLIO MANUAL                       TOM(1)", "heading"),
+                Line(string.Empty),
+                Line("NAME", "heading"),
+                Line("    Tom Biddulph - senior software engineer"),
+                Line(string.Empty),
+                Line("SYNOPSIS", "heading"),
+                Line("    Backend-focused C# engineer building reliable web and fintech systems."),
+                Line(string.Empty),
+                Line("DESCRIPTION", "heading"),
+                Line("    Builds accessible financial products at NewDay and open-source developer"),
+                Line("    tooling around Azure, distributed messaging, and observability."),
+                Line(string.Empty),
+                Line("SEE ALSO", "heading"),
+                Link("    resume(1)", "resume"),
+                Link("    projects(1)", "projects"),
+                Link("    contributions(1)", "contributions"),
+                Link("    contact(1)", "contact")
+            ];
+        }
+
+        var documentation = CommandCatalog.Find(requested);
+        if (documentation is null)
+        {
+            var suggestion = CommandCatalog.Suggest(requested, manuals: true);
+            return suggestion is null
+                ? [Line($"man: no manual entry for '{requested}'", "error")]
+                : [Line($"man: no manual entry for '{requested}'", "error"), Link($"Did you mean '{suggestion}'?", $"man {suggestion}")];
+        }
+
+        List<OutputLine> lines =
         [
-            Line("TOM(1)                       PORTFOLIO MANUAL                       TOM(1)", "heading"),
+            Line($"{documentation.Name.ToUpperInvariant()}(1)                       BLAZORTERM MANUAL", "heading"),
             Line(string.Empty),
             Line("NAME", "heading"),
-            Line("    Tom Biddulph - senior software engineer"),
+            Line($"    {documentation.Name} - {documentation.Description}"),
             Line(string.Empty),
             Line("SYNOPSIS", "heading"),
-            Line("    Backend-focused C# engineer building reliable web and fintech systems."),
+            Line("    " + documentation.Synopsis),
             Line(string.Empty),
             Line("DESCRIPTION", "heading"),
-            Line("    Builds accessible financial products at NewDay and open-source developer"),
-            Line("    tooling around Azure, distributed messaging, and observability."),
-            Line(string.Empty),
-            Line("SEE ALSO", "heading"),
-            Link("    resume(1), projects(1), contributions(1), contact(1)", "resume")
+            Line("    " + documentation.Description)
         ];
+        if (documentation.Examples is { Count: > 0 })
+        {
+            lines.Add(Line(string.Empty));
+            lines.Add(Line("EXAMPLES", "heading"));
+            lines.AddRange(documentation.Examples.Select(example => Link("    " + example, example)));
+        }
+        lines.Add(Line(string.Empty));
+        lines.Add(Line("SEE ALSO", "heading"));
+        var related = documentation.SeeAlso ?? CommandCatalog.Entries
+            .Where(entry => entry.Category == documentation.Category && entry.Name != documentation.Name)
+            .Take(3)
+            .Select(entry => entry.Name)
+            .ToArray();
+        lines.AddRange(related.Select(name => Link($"    {name}(1)", $"man {name}")));
+        return lines;
     }
 
     private static IReadOnlyList<OutputLine> ResumeLines()
@@ -718,6 +942,17 @@
             Line($"last request   {snapshot.LastRequestMilliseconds:F1} ms"),
             Line("instrumentation ASP.NET Core + runtime + HTTP + custom metrics"),
             Line("export          OpenTelemetry / OTLP")
+        ];
+    }
+
+    private IReadOnlyList<OutputLine> UptimeLines()
+    {
+        var uptime = Telemetry.Snapshot().Uptime;
+        return
+        [
+            Line("UPTIME", "heading"),
+            new KeyValueLine("application", FormatUptime(uptime)),
+            new KeyValueLine("started", DateTimeOffset.Now.Subtract(uptime).ToString("yyyy-MM-dd HH:mm:ss zzz"))
         ];
     }
 
@@ -784,10 +1019,12 @@
 
     private static IReadOnlyList<OutputLine> ContributionLines()
     {
+        var merged = TerminalContent.Contributions.Count(item => item.Status == "MERGED");
+        var open = TerminalContent.Contributions.Length - merged;
         List<OutputLine> lines =
         [
             Line("OPEN-SOURCE CONTRIBUTIONS", "heading"),
-            Line("4 merged external pull requests / 1 currently open"),
+            Line($"{merged} merged external pull requests / {open} currently open"),
             Line(string.Empty)
         ];
 
@@ -853,37 +1090,71 @@
         return [Line(fortunes[Random.Shared.Next(fortunes.Length)], "accent")];
     }
 
-    private static IReadOnlyList<OutputLine> UnknownCommandLines(string command)
+    private static IReadOnlyList<OutputLine> CowsayLines(string[] arguments)
     {
-        var suggestion = Commands
-            .Select(candidate => new { Command = candidate, Distance = EditDistance(command, candidate) })
-            .OrderBy(candidate => candidate.Distance)
-            .First();
-
-        return suggestion.Distance <= 3
-            ? [Line(command + ": command not found", "error"), Link("Did you mean '" + suggestion.Command + "'?", suggestion.Command)]
-            : [Line(command + ": command not found. Try 'help'.", "error")];
+        var message = arguments.Length == 0 ? "Moo." : string.Join(' ', arguments);
+        var border = new string('-', message.Length + 2);
+        var art = $" {border}\n< {message} >\n {border}\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||";
+        return [new AsciiArtLine(art, $"A cow says: {message}") { Style = "cowsay" }];
     }
 
-    private static int EditDistance(string left, string right)
+    private IReadOnlyList<OutputLine> EnterVim(string[] arguments)
     {
-        var previous = Enumerable.Range(0, right.Length + 1).ToArray();
+        if (arguments.Length > 1)
+            return [Line("vim: too many file names", "error")];
 
-        for (var i = 1; i <= left.Length; i++)
+        _vimMode = true;
+        _vimMessage = "VIM - Vi IMproved";
+        _vimHintCancellation?.Cancel();
+        _vimHintCancellation?.Dispose();
+        _vimHintCancellation = new CancellationTokenSource();
+        _ = ShowVimHintAsync(_vimHintCancellation.Token);
+        return [Line(arguments.Length == 0 ? "Vim opened an empty read-only buffer." : $"Vim opened '{arguments[0]}' read-only.")];
+    }
+
+    private void HandleVimInput(string input)
+    {
+        Input = string.Empty;
+        if (input == ":q!")
         {
-            var current = new int[right.Length + 1];
-            current[0] = i;
-
-            for (var j = 1; j <= right.Length; j++)
-            {
-                var cost = left[i - 1] == right[j - 1] ? 0 : 1;
-                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost);
-            }
-
-            previous = current;
+            _vimMode = false;
+            _vimMessage = string.Empty;
+            _vimHintCancellation?.Cancel();
+            _vimHintCancellation?.Dispose();
+            _vimHintCancellation = null;
+            return;
         }
 
-        return previous[right.Length];
+        _vimMessage = string.IsNullOrEmpty(input)
+            ? "Type :q! and press Enter to leave Vim."
+            : $"E492: Not an editor command: {input}";
+    }
+
+    private async Task ShowVimHintAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            await InvokeAsync(() =>
+            {
+                if (_vimMode)
+                {
+                    _vimMessage = "Hint: type :q! and press Enter to return to the shell.";
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private static IReadOnlyList<OutputLine> UnknownCommandLines(string command)
+    {
+        var suggestion = CommandCatalog.Suggest(command);
+        return suggestion is not null
+            ? [Line(command + ": command not found", "error"), Link("Did you mean '" + suggestion + "'?", suggestion)]
+            : [Line(command + ": command not found. Try 'help'.", "error")];
     }
 
     private static OutputLine Line(string text, string tone = "")
@@ -916,6 +1187,23 @@
         return new BlazorTerm.HelpLine(command, description, url, LinkKind.Web) { Style = "help-row help-link" };
     }
 
+    private static OutputLine CatalogHelpLine(CommandDocumentation documentation)
+    {
+        var target = documentation.LinkTarget ?? documentation.Name;
+        return new BlazorTerm.HelpLine(documentation.Synopsis, documentation.Description, target, documentation.LinkKind)
+        {
+            Style = documentation.LinkKind is null ? "help-row help-static" : "help-row help-link"
+        };
+    }
+
+    public void Dispose()
+    {
+        _vimHintCancellation?.Cancel();
+        _vimHintCancellation?.Dispose();
+        _commandCancellation.Cancel();
+        _commandCancellation.Dispose();
+    }
+
     public sealed record HistoryEntry(string Command, string Path, CommandResult Result);
     public sealed class TerminalSession
     {
@@ -924,6 +1212,7 @@
         public string Input { get; set; } = string.Empty;
         public string Theme { get; set; } = "theme-green";
         public string CurrentPath { get; set; } = "~";
+        public int TourStep { get; set; }
         public DateTimeOffset Started { get; set; } = DateTimeOffset.Now;
     }
 }

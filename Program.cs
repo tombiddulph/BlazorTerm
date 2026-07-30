@@ -15,8 +15,19 @@ builder.Services.AddRazorComponents()
         options.PersistedCircuitInMemoryMaxRetained = 1_000;
         options.PersistedCircuitInMemoryRetentionPeriod = TimeSpan.FromHours(2);
     });
+builder.Services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
 builder.Services.AddSingleton<TerminalTelemetry>();
 builder.Services.AddSingleton<CircuitHandler>(services => services.GetRequiredService<TerminalTelemetry>());
+var kubernetesOptions = new KubernetesOptions();
+builder.Configuration.GetSection(KubernetesOptions.SectionName).Bind(kubernetesOptions);
+builder.Services.AddSingleton(kubernetesOptions);
+builder.Services.AddSingleton<IKubernetesReader>(_ => KubernetesReader.Create(kubernetesOptions));
+var stravaOptions = new StravaOptions();
+builder.Configuration.GetSection(StravaOptions.SectionName).Bind(stravaOptions);
+builder.Services.AddSingleton(stravaOptions);
+builder.Services.AddSingleton<IStravaReader>(_ => new StravaReader(
+    stravaOptions,
+    new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })));
 
 var telemetry = builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(
@@ -56,9 +67,43 @@ var terminalTelemetry = app.Services.GetRequiredService<TerminalTelemetry>();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsHead(context.Request.Method))
+    {
+        context.Request.Method = HttpMethods.Get;
+        var originalBody = context.Response.Body;
+        context.Response.Body = Stream.Null;
+        try
+        {
+            await next(context);
+        }
+        finally
+        {
+            context.Response.Body = originalBody;
+        }
+
+        return;
+    }
+
+    await next(context);
+});
+
+// Explicit so route matching happens after the HEAD-to-GET rewrite above;
+// WebApplication's implicit UseRouting would otherwise run first and 405 HEAD requests.
+app.UseRouting();
+
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers.XContentTypeOptions = "nosniff";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=()";
+    await next(context);
+});
 
 app.Use(async (context, next) =>
 {

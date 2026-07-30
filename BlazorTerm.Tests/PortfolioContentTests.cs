@@ -96,6 +96,7 @@ public sealed class PortfolioContentTests
             Input = "projects",
             Theme = "theme-amber",
             CurrentPath = "~/projects",
+            TourStep = 4,
             Entries =
             [
                 new Home.HistoryEntry(
@@ -112,6 +113,7 @@ public sealed class PortfolioContentTests
         Assert.Equal(session.Input, restored.Input);
         Assert.Equal(session.Theme, restored.Theme);
         Assert.Equal(session.CurrentPath, restored.CurrentPath);
+        Assert.Equal(session.TourStep, restored.TourStep);
         Assert.Equal(session.CommandHistory, restored.CommandHistory);
         Assert.Single(restored.Entries);
         Assert.Equal(session.Entries[0].Command, restored.Entries[0].Command);

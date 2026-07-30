@@ -10,6 +10,8 @@ namespace BlazorTerm;
 [JsonDerivedType(typeof(TableLine), "table")]
 [JsonDerivedType(typeof(RawLine), "raw")]
 [JsonDerivedType(typeof(TraceLine), "trace")]
+[JsonDerivedType(typeof(ChartLine), "chart")]
+[JsonDerivedType(typeof(AsciiArtLine), "ascii-art")]
 public abstract record OutputLine
 {
     public string Style { get; init; } = string.Empty;
@@ -73,6 +75,19 @@ public sealed record RawLine(string Text, RawLineKind Kind = RawLineKind.Preform
 public sealed record TraceLine(string Label, string Bar, string DurationText) : OutputLine
 {
     public override string DisplayText => $"{Label}  {Bar}  {DurationText}";
+    public override OutputLine WithHighlights(IReadOnlyList<TextRange> highlights) => this with { Highlights = highlights };
+}
+
+public sealed record ChartLine(string Label, string Bar, string Value, string AccessibleText) : OutputLine
+{
+    public override string DisplayText => AccessibleText;
+    public override OutputLine WithHighlights(IReadOnlyList<TextRange> highlights) => this with { Highlights = highlights };
+}
+
+public sealed record AsciiArtLine(string Text, string AccessibleText) : OutputLine
+{
+    public override string DisplayText => AccessibleText;
+    public override string ToPlainText() => Text;
     public override OutputLine WithHighlights(IReadOnlyList<TextRange> highlights) => this with { Highlights = highlights };
 }
 

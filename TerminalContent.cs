@@ -24,9 +24,9 @@ public static class TerminalContent
     public static readonly ResumeEntry[] Resume =
     [
         new("NewDay", "Senior Software Engineer", new DateOnly(2023, 1, 1), null,
-            ["Builds and maintains accessible financial products used by millions of customers."]),
-        new("Codat", "Senior Software Engineer", new DateOnly(2022, 1, 1), new DateOnly(2022, 12, 31), []),
-        new("Checkout.com", "Software Engineer II", new DateOnly(2021, 1, 1), new DateOnly(2022, 12, 31), []),
+            ["Builds accessible features for financial products that serve millions of NewDay customers."]),
+        new("Codat", "Senior Software Engineer", new DateOnly(2022, 2, 1), new DateOnly(2022, 12, 31), []),
+        new("Checkout.com", "Software Engineer II", new DateOnly(2021, 1, 1), new DateOnly(2022, 1, 31), []),
         new("NewDay", "Software Engineer", new DateOnly(2019, 1, 1), new DateOnly(2020, 12, 31), []),
         new("AND Digital", "Associate", new DateOnly(2018, 1, 1), new DateOnly(2019, 12, 31), [])
     ];

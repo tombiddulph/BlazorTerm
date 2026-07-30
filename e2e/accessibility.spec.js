@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 
-const routes = ['/', '/resume', '/projects', '/projects/property-resolvers', '/timeline', '/contact'];
+const routes = ['/', '/?cmd=tour', '/?cmd=man%20grep', '/?cmd=kubectl%20get%20pods', '/?cmd=rides', '/?cmd=cowsay%20hello', '/?cmd=vim', '/resume', '/projects', '/projects/property-resolvers', '/timeline', '/contact'];
 
 for (const route of routes) {
   test(`${route} has no automated accessibility violations`, async ({ page }) => {

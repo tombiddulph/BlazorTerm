@@ -5,6 +5,22 @@ namespace BlazorTerm.Tests;
 public sealed class CommandTracingTests
 {
     [Fact]
+    public async Task Collector_RemainsActiveAcrossAwaitedCommandWork()
+    {
+        using var collector = new CommandTraceCollector();
+        using var rootScope = TerminalActivities.StartRoot("command.async");
+        var root = Assert.IsType<Activity>(rootScope.Activity);
+        collector.Capture(root.TraceId, root.SpanId);
+
+        await Task.Yield();
+        using (TerminalActivities.Source.StartActivity("async.completed"))
+            await Task.Delay(1);
+
+        rootScope.Stop();
+        Assert.Contains(collector.Snapshot(), snapshot => snapshot.Name == "async.completed");
+    }
+
+    [Fact]
     public void Collector_CapturesOnlyTheSelectedTrace()
     {
         using var collector = new CommandTraceCollector();

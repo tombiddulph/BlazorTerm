@@ -139,12 +139,68 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
     {
         var html = await _client.GetStringAsync("/?cmd=help");
 
-        Assert.Contains(">PROFILE</div>", html);
-        Assert.Contains(">NAVIGATE</div>", html);
-        Assert.Contains(">SYSTEM</div>", html);
-        Assert.Contains(">project &lt;name&gt;</button>", html);
-        Assert.Contains(">Open a project case study</span>", html);
-        Assert.Contains(">theme &lt;name&gt;</span>", html);
+        Assert.Contains("HELP / COMMAND GROUPS", html);
+        Assert.Contains(">help profile</button>", html);
+        Assert.Contains(">help portfolio</button>", html);
+        Assert.Contains(">help filters</button>", html);
+        Assert.DoesNotContain(">kubectl get &lt;resource&gt;</span>", html);
+    }
+
+    [Theory]
+    [InlineData("profile", "Terminal-formatted CV")]
+    [InlineData("portfolio", "Open a project case study")]
+    [InlineData("files", "Change working directory")]
+    [InlineData("system", "Sanitized pods, nodes, or namespaces")]
+    [InlineData("filters", "Filter lines by a regular expression")]
+    [InlineData("fun", "Ask a cow to say something")]
+    public async Task HelpCommand_ShowsOneGroupAtATime(string group, string expected)
+    {
+        var html = await _client.GetStringAsync($"/?cmd=help%20{group}");
+
+        Assert.Contains($"HELP / {group.ToUpperInvariant()}", html);
+        Assert.Contains(expected, html);
+    }
+
+    [Theory]
+    [InlineData("grep", "grep [-i] [-v] &lt;pattern&gt;")]
+    [InlineData("tour", "tour [next|previous|&lt;number&gt;|stop]")]
+    [InlineData("kubectl", "Sanitized pods, nodes, or namespaces")]
+    [InlineData("tree", "Show the virtual filesystem tree")]
+    [InlineData("git", "read-only Git interface")]
+    public async Task ManCommand_GeneratesCatalogManuals(string command, string expected)
+    {
+        var html = await _client.GetStringAsync($"/?cmd=man%20{command}");
+
+        Assert.Contains("NAME", html);
+        Assert.Contains("SYNOPSIS", html);
+        Assert.Contains("DESCRIPTION", html);
+        Assert.Contains("SEE ALSO", html);
+        Assert.Contains(expected, html);
+    }
+
+    [Fact]
+    public async Task ManCommand_IsPipeableAndSuggestsUnknownNames()
+    {
+        var piped = await _client.GetStringAsync("/?cmd=man%20grep%20%7C%20grep%20SYNOPSIS");
+        var unknown = await _client.GetStringAsync("/?cmd=man%20gprep");
+
+        Assert.Contains("SYNOPSIS", piped);
+        Assert.DoesNotContain("DESCRIPTION", piped);
+        Assert.Contains("man: no manual entry for &#x27;gprep&#x27;", unknown);
+        Assert.Contains("Did you mean &#x27;grep&#x27;?", unknown);
+    }
+
+    [Fact]
+    public async Task TourStartsWithOneConciseNonLiveStep()
+    {
+        var html = await _client.GetStringAsync("/?cmd=tour");
+
+        Assert.Contains("TOUR 1/6 / PROFILE", html);
+        Assert.Contains(">run: about</button>", html);
+        Assert.Contains(">next</button>", html);
+        Assert.DoesNotContain("LIVE TELEMETRY", html);
+        Assert.DoesNotContain("Strava integration", html);
+        Assert.DoesNotContain("live cluster view", html);
     }
 
     [Fact]
@@ -228,6 +284,18 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("refusing to trace trace recursively", html);
     }
 
+    [Theory]
+    [InlineData("kubectl%20get%20pods", "kubectl: live cluster view is disabled")]
+    [InlineData("rides", "rides: Strava integration is disabled")]
+    public async Task LiveCommands_PrerenderFriendlyDisabledStates(string command, string expected)
+    {
+        var html = await _client.GetStringAsync($"/?cmd={command}");
+
+        Assert.Contains(expected, html);
+        Assert.DoesNotContain("ClientSecret", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("aria-live=\"polite\"", html);
+    }
+
     [Fact]
     public async Task FilesystemCommands_ArePrerendered()
     {
@@ -250,6 +318,62 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         var html = await _client.GetStringAsync($"/?cmd={command}");
 
         Assert.Contains(expected, html);
+    }
+
+    [Theory]
+    [InlineData("sudo", "tom is not in the sudoers file. This incident will be reported.")]
+    [InlineData("uptime", "UPTIME")]
+    [InlineData("cowsay%20ship%20it", "A cow says: ship it")]
+    [InlineData("vim", "Vim interaction mode")]
+    public async Task DelightCommands_ArePrerendered(string command, string expected)
+    {
+        var html = await _client.GetStringAsync($"/?cmd={command}");
+
+        Assert.Contains(expected, html);
+    }
+
+    [Fact]
+    public async Task Fortune_PrintsOneOfTheAvailableMessages()
+    {
+        var html = await _client.GetStringAsync("/?cmd=fortune");
+
+        Assert.Contains("executed-command\">fortune", html);
+        Assert.Contains(new[]
+        {
+            "Make it work, make it right, make it fast.",
+            "The best observability is the one you add before production.",
+            "A small, well-named function beats a clever abstraction.",
+            "There are only two hard things: cache invalidation, naming, and off-by-one errors."
+        }, html.Contains);
+    }
+
+    [Fact]
+    public async Task HelpAndCompletion_IncludeEveryDelightCommand()
+    {
+        var index = await _client.GetStringAsync("/?cmd=help");
+        var fun = await _client.GetStringAsync("/?cmd=help%20fun");
+        var system = await _client.GetStringAsync("/?cmd=help%20system");
+        var groupedHelp = fun + system;
+
+        Assert.Contains(">help fun</button>", index);
+        Assert.Contains("HELP / FUN", fun);
+        foreach (var command in new[] { "sudo", "vim", "uptime", "fortune", "cowsay" })
+        {
+            Assert.Contains(command, groupedHelp);
+            Assert.Contains($"{command},", index + ",");
+        }
+    }
+
+    [Theory]
+    [InlineData("nord")]
+    [InlineData("solarized")]
+    [InlineData("dracula")]
+    public async Task ExtendedThemes_ArePrerendered(string theme)
+    {
+        var html = await _client.GetStringAsync($"/?cmd=theme%20{theme}");
+
+        Assert.Contains($"site-shell theme-{theme}", html);
+        Assert.Contains($"Theme changed to {theme}.", html);
     }
 
     [Theory]

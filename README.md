@@ -7,6 +7,9 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - Interactive Server rendering with persisted circuit state
 - Static, semantic resume, project, timeline, and contact routes
 - Command history, aliases, typo suggestions, and tab completion
+- Quoted command parsing, composable pipelines, and `grep`, `head`, `tail`, `wc`, `sort`, and `uniq` filters
+- Real OpenTelemetry command traces rendered as responsive terminal waterfalls
+- Content-backed virtual filesystem with persistent working directory and path completion
 - Powerlevel10k-inspired prompt and responsive iTerm-style interface
 - Project case studies with terminal architecture diagrams
 - GitHub projects and verified open-source contributions
@@ -18,6 +21,8 @@ An interactive, iTerm-inspired personal portfolio built with Blazor, .NET 10, an
 - Automated WCAG 2.1 AA checks with axe-core
 - ANSI resume output for terminal HTTP clients and an `/llms.txt` endpoint
 - Live circuit, uptime, and request-latency telemetry in the terminal
+- Optional sanitized Kubernetes and Strava integrations with bounded caching and fail-closed output
+- Five persisted terminal themes, a tiny Vim mode, and accessible ASCII charts
 - CDN-ready cache policies for circuit-free portfolio routes
 - Host-aware static resume output for the `tommyb.dev` apex domain
 
@@ -27,7 +32,9 @@ Run `help` in the terminal to discover the full command set. Useful starting poi
 
 ```text
 neofetch
+tour
 man tom
+man grep
 resume
 stack
 timeline
