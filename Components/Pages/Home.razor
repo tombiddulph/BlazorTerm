@@ -98,7 +98,7 @@
                     <div class="session-intro">
                         <div class="login-line">Last login: @SessionStarted.ToString("ddd MMM dd HH:mm:ss") on ttys001</div>
                         <div class="identity-line"><strong>@TerminalContent.DisplayName</strong><span>Senior Software Engineer / C# + Backend</span></div>
-                        <div class="intro-hint">Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, view the <a href="/resume">plain resume</a>, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
+                        <div class="intro-hint">Type <button class="inline-command" @onclick='() => RunShortcut("help")'>help</button> to explore, launch the <button class="inline-command" @onclick='() => RunShortcut("map")'>activity map</button>, view the <a href="/resume">plain resume</a>, or find me on <a href="@TerminalContent.GitHubUrl" target="_blank" rel="noopener noreferrer">GitHub</a> and <a href="@TerminalContent.LinkedInUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>.</div>
                     </div>
 
                     @foreach (var entry in Entries)
@@ -240,7 +240,7 @@
 <PortfolioOverview Class="semantic-fallback" />
 
 @code {
-    private static readonly string[] SuggestedCommands = ["resume", "projects", "stack", "contact", "telemetry"];
+    private static readonly string[] SuggestedCommands = ["resume", "projects", "map", "stack", "contact", "telemetry"];
 
     private static readonly PipelineExecutor Pipeline = new();
 
@@ -400,9 +400,10 @@
         var first = segments[0];
         segments[0] = first with { Name = CommandCatalog.Aliases.GetValueOrDefault(first.Name, first.Name) };
 
-        if (segments.Length == 1 && segments[0].Name == "gui")
+        if (segments.Length == 1 && segments[0].Name is "gui" or "map")
         {
-            Navigation.NavigateTo("/resume");
+            var isMap = segments[0].Name == "map";
+            Navigation.NavigateTo(isMap ? "/activity-map" : "/resume", forceLoad: isMap);
             return;
         }
 
@@ -607,7 +608,7 @@
                 HelpLink($"help {category.Name}", category.Description, $"help {category.Name}")));
             index.Add(Line(string.Empty));
             index.Add(Line("POPULAR", "help-heading"));
-            foreach (var name in new[] { "tour", "resume", "projects", "telemetry" })
+            foreach (var name in new[] { "tour", "resume", "projects", "map", "telemetry" })
                 index.Add(CatalogHelpLine(CommandCatalog.Find(name)!));
             return index;
         }

@@ -1,0 +1,35 @@
+@page "/activity-map"
+
+<PortfolioHead Title="Activity Map | Tom Biddulph" Description="A privacy-preserving map of outdoor activities across every sport." Path="/activity-map" />
+<HeadContent>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.1.0/dist/maplibre-gl.css" />
+</HeadContent>
+
+<main class="activity-map-page">
+    <header class="activity-map-header">
+        <a class="activity-map-back" href="/" data-enhance-nav="false">&lt; terminal</a>
+        <div>
+            <p class="activity-map-kicker">ALL SPORTS / AGGREGATED</p>
+            <h1>Ground covered.</h1>
+            <p>Every GPS-enabled sport, rendered as one body of movement rather than individual routes.</p>
+        </div>
+        <div class="activity-map-summary">
+            <dl class="activity-map-stats">
+                <div><dt>Activities traced</dt><dd id="map-activity-count">0</dd></div>
+                <div><dt>Distance visible</dt><dd id="map-distance-count">0 km / 0 mi</dd></div>
+                <div><dt>Total elevation</dt><dd id="map-elevation-count">0 m / 0 ft</dd></div>
+                <div><dt>Route detail</dt><dd id="map-route-detail">100 m</dd></div>
+            </dl>
+            <ul id="map-sport-breakdown" class="activity-map-sports" aria-label="Activities by sport">
+                <li>Loading sport breakdown...</li>
+            </ul>
+        </div>
+    </header>
+
+    <section class="activity-map-frame" aria-labelledby="activity-map-title">
+        <h2 id="activity-map-title" class="semantic-fallback">Aggregated activity map</h2>
+        <div id="activity-map" role="region" aria-label="Interactive map showing generalized routes from GPS-enabled activities"></div>
+        <p id="activity-map-status" class="activity-map-status">Loading generalized activity routes...</p>
+        <button id="activity-map-replay" class="activity-map-replay" type="button" hidden>Replay trace</button>
+    </section>
+</main>

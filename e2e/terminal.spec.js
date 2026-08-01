@@ -202,6 +202,18 @@ test('opens the static resume with the gui command', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Experience' })).toBeVisible();
 });
 
+test('discovers and opens the activity map from the terminal', async ({ page }) => {
+  await page.goto('/');
+  const input = page.locator('#terminal-input');
+  await expect(input).toBeFocused();
+  await input.pressSequentially('map');
+  await input.press('Enter');
+
+  await expect(page).toHaveURL(/\/activity-map$/);
+  await expect(page.getByRole('heading', { name: 'Ground covered.' })).toBeVisible();
+  await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+});
+
 test('shows live application telemetry', async ({ page }) => {
   await page.goto('/');
   const input = page.locator('#terminal-input');

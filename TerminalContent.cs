@@ -116,7 +116,7 @@ public static class TerminalContent
     [
         "/", "/resume", "/projects",
         .. Projects.Select(project => $"/projects/{project.Slug}"),
-        "/timeline", "/contact"
+        "/timeline", "/activity-map", "/contact"
     ];
 }
 

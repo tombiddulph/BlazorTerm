@@ -9,7 +9,7 @@ public sealed class CommandCatalogTests
         [
             "help", "neofetch", "man", "tour", "about", "resume", "stack", "hosting", "timeline", "status",
             "experience", "education", "skills", "projects", "project", "contributions", "contact", "github",
-            "linkedin", "open", "history", "ls", "cat", "cd", "pwd", "tree", "whoami", "who", "date",
+            "linkedin", "open", "map", "history", "ls", "cat", "cd", "pwd", "tree", "whoami", "who", "date",
             "uptime", "version", "git", "kubectl", "rides", "clear", "theme", "gui", "telemetry", "trace",
             "coffee", "fortune", "cowsay", "sudo", "vim"
         ];

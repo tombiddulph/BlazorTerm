@@ -54,6 +54,7 @@ public static class CommandCatalog
         Doc("github", "github", "Open Tom's GitHub profile and project shortcuts.", CommandCategory.Portfolio, LinkTarget: TerminalContent.GitHubUrl, LinkKind: BlazorTerm.LinkKind.Web),
         Doc("linkedin", "linkedin", "Open Tom's LinkedIn profile.", CommandCategory.Portfolio, LinkTarget: TerminalContent.LinkedInUrl, LinkKind: BlazorTerm.LinkKind.Web),
         Doc("open", "open [project]", "Open GitHub or a selected project URL.", CommandCategory.Portfolio, ["open property-resolvers"]),
+        Doc("map", "map", "Open the all-sports activity map.", CommandCategory.Portfolio),
         Doc("gui", "gui", "Open the plain web resume.", CommandCategory.Portfolio),
 
         Doc("ls", "ls [-l] [path]", "List virtual files and directories.", CommandCategory.Files, ["ls -l projects"]),
@@ -101,6 +102,8 @@ public static class CommandCatalog
             ["bio"] = "about",
             ["cv"] = "resume",
             ["repos"] = "projects",
+            ["activities"] = "map",
+            ["heatmap"] = "map",
             ["oss"] = "contributions",
             ["work"] = "experience",
             ["cls"] = "clear"

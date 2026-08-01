@@ -1,0 +1,254 @@
+.activity-map-page {
+    background: #090b0d;
+    color: #f3f0e9;
+    min-height: 100vh;
+    padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+.activity-map-header {
+    align-items: end;
+    display: grid;
+    gap: 1.5rem 3rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    margin: 0 auto;
+    max-width: 100rem;
+    padding: 0.5rem 0 2rem;
+}
+
+.activity-map-back,
+.activity-map-kicker,
+.activity-map-stats dt {
+    color: #ff5a36;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.activity-map-back {
+    align-self: start;
+    text-decoration: none;
+}
+
+.activity-map-back:hover,
+.activity-map-back:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 0.3rem;
+}
+
+.activity-map-kicker {
+    margin: 0 0 0.6rem;
+}
+
+.activity-map-header h1 {
+    font-size: clamp(2.3rem, 6vw, 5.5rem);
+    letter-spacing: -0.065em;
+    line-height: 0.9;
+    margin: 0;
+}
+
+.activity-map-header p:last-child {
+    color: #9a9da3;
+    line-height: 1.6;
+    margin: 1rem 0 0;
+    max-width: 48rem;
+}
+
+.activity-map-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem clamp(1.5rem, 3vw, 3rem);
+    justify-content: flex-end;
+    margin: 0;
+}
+
+.activity-map-stats div {
+    min-width: 9rem;
+}
+
+.activity-map-stats dt {
+    color: #777b82;
+}
+
+.activity-map-stats dd {
+    font-size: clamp(1.3rem, 3vw, 2rem);
+    margin: 0.35rem 0 0;
+    text-shadow: 0 0 24px rgba(255, 90, 54, 0.2);
+    font-variant-numeric: tabular-nums;
+}
+
+.activity-map-summary {
+    max-width: 47rem;
+}
+
+.activity-map-sports {
+    display: grid;
+    gap: 0.55rem 1.5rem;
+    grid-template-columns: repeat(4, minmax(9rem, 1fr));
+    list-style: none;
+    margin: 1.3rem 0 0;
+    padding: 0;
+}
+
+.activity-map-sports ::deep li {
+    align-items: center;
+    border-bottom: 1px solid #25282d;
+    color: #898d94;
+    display: flex;
+    font-size: 0.66rem;
+    gap: 0.65rem;
+    justify-content: flex-start;
+    overflow: hidden;
+    padding: 0.3rem 0;
+    position: relative;
+}
+
+.activity-map-sports ::deep span {
+    white-space: nowrap;
+}
+
+.activity-map-sports ::deep li::after {
+    background: linear-gradient(90deg, rgba(255, 90, 54, 0.48), rgba(255, 90, 54, 0.04));
+    bottom: 0;
+    content: "";
+    height: 1px;
+    left: 0;
+    position: absolute;
+    width: var(--sport-share, 0%);
+}
+
+.activity-map-sports ::deep strong {
+    color: #d7d9dc;
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+}
+
+.activity-map-frame {
+    background: #050607;
+    border: 1px solid rgba(255, 90, 54, 0.26);
+    box-shadow: 0 0 70px rgba(255, 90, 54, 0.08), inset 0 0 60px rgba(0, 0, 0, 0.75);
+    height: min(72vh, 58rem);
+    margin: 0 auto;
+    min-height: 34rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.activity-map-frame::after {
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 1;
+}
+
+.activity-map-frame::after {
+    background:
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.008) 0, rgba(255, 255, 255, 0.008) 1px, transparent 1px, transparent 4px),
+        radial-gradient(circle at center, transparent 58%, rgba(2, 3, 4, 0.42) 120%);
+}
+
+#activity-map {
+    height: 100%;
+    width: 100%;
+}
+
+.activity-map-status {
+    background: rgba(9, 11, 13, 0.88);
+    left: 50%;
+    margin: 0;
+    padding: 0.8rem 1rem;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+.activity-map-status[hidden] {
+    display: none;
+}
+
+.activity-map-replay {
+    backdrop-filter: blur(12px);
+    background: rgba(9, 11, 13, 0.82);
+    border: 1px solid #303338;
+    position: absolute;
+    z-index: 2;
+}
+
+.activity-map-replay {
+    color: #ff7658;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    padding: 0.65rem 0.8rem;
+    right: 4.5rem;
+    text-transform: uppercase;
+    top: 1rem;
+}
+
+.activity-map-replay:hover,
+.activity-map-replay:focus-visible {
+    background: rgba(255, 90, 54, 0.14);
+    border-color: #ff5a36;
+    outline: 1px solid #ff5a36;
+    outline-offset: 2px;
+}
+
+.activity-map-replay:disabled {
+    color: #777b82;
+    cursor: wait;
+}
+
+::deep .maplibregl-ctrl-group {
+    background: #121519;
+    border: 1px solid #303338;
+}
+
+::deep .maplibregl-ctrl-group button + button {
+    border-top-color: #303338;
+}
+
+::deep .maplibregl-ctrl button .maplibregl-ctrl-icon {
+    filter: invert(1);
+}
+
+::deep .maplibregl-ctrl-attrib {
+    background: rgba(9, 11, 13, 0.75);
+    color: #9a9da3;
+}
+
+::deep .maplibregl-ctrl-attrib a {
+    color: #d5d6d8;
+}
+
+@media (max-width: 800px) {
+    .activity-map-header {
+        align-items: start;
+        grid-template-columns: 1fr;
+    }
+
+    .activity-map-stats {
+        justify-content: flex-start;
+    }
+
+    .activity-map-sports {
+        grid-template-columns: repeat(2, minmax(8rem, 1fr));
+    }
+
+    .activity-map-back {
+        margin-bottom: 1rem;
+    }
+
+    .activity-map-frame {
+        height: 68vh;
+        min-height: 30rem;
+    }
+
+    .activity-map-replay {
+        right: 3.8rem;
+        top: 0.75rem;
+    }
+
+}

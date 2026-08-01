@@ -197,6 +197,7 @@ static bool IsCdnCacheablePath(PathString path)
 {
     return path == "/resume"
         || path == "/timeline"
+        || path == "/activity-map"
         || path == "/contact"
         || path == "/llms.txt"
         || path == "/sitemap.xml"

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
@@ -46,6 +47,8 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains("executed-command\">whoami", html);
         Assert.Contains("aria-label=\"Suggested terminal commands\"", html);
         Assert.Contains(">telemetry</button>", html);
+        Assert.Contains(">map</button>", html);
+        Assert.Contains(">activity map</button>", html);
         Assert.Contains("class=\"neofetch-output\"", html);
         Assert.Contains("role=\"log\"", html);
         Assert.Contains("aria-live=\"polite\"", html);
@@ -114,6 +117,44 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
     }
 
     [Fact]
+    public async Task ActivityMap_PublishesOnlyGeneralizedRouteMiddles()
+    {
+        var response = await _client.GetAsync("/activity-map.json");
+        using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        var root = document.RootElement;
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("FeatureCollection", root.GetProperty("type").GetString());
+        Assert.Equal(100, root.GetProperty("geometryPrecisionMeters").GetInt32());
+        Assert.Equal(1_500, root.GetProperty("privateRouteEndMeters").GetInt32());
+        Assert.True(root.GetProperty("distanceKilometers").GetInt32() > 0);
+        Assert.True(root.GetProperty("elevationMeters").GetInt32() > 0);
+        Assert.NotEmpty(root.GetProperty("features").EnumerateArray());
+        Assert.Equal(
+            root.GetProperty("activityCount").GetInt32(),
+            root.GetProperty("sports").EnumerateArray().Sum(sport => sport.GetProperty("count").GetInt32()));
+        Assert.All(root.GetProperty("features").EnumerateArray(), feature =>
+        {
+            Assert.Empty(feature.GetProperty("properties").EnumerateObject());
+            Assert.Equal("LineString", feature.GetProperty("geometry").GetProperty("type").GetString());
+            Assert.True(feature.GetProperty("geometry").GetProperty("coordinates").GetArrayLength() >= 2);
+        });
+    }
+
+    [Fact]
+    public async Task ActivityMap_RendersItsFullWidthPrivacyInterface()
+    {
+        var response = await _client.GetAsync("/activity-map");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("<main class=\"activity-map-page\"", html);
+        Assert.Contains("Ground covered", html);
+        Assert.Contains("id=\"activity-map\"", html);
+        Assert.DoesNotContain("\"type\":\"server\"", html);
+    }
+
+    [Fact]
     public async Task ReconnectInterfaces_LinkToStaticResume()
     {
         var html = await _client.GetStringAsync("/");
@@ -144,6 +185,18 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Contains(">help portfolio</button>", html);
         Assert.Contains(">help filters</button>", html);
         Assert.DoesNotContain(">kubectl get &lt;resource&gt;</span>", html);
+    }
+
+    [Fact]
+    public async Task PortfolioHelpAndCompletion_DiscoverActivityMap()
+    {
+        var home = await _client.GetStringAsync("/");
+        var help = await _client.GetStringAsync("/?cmd=help%20portfolio");
+
+        Assert.Contains("data-command-completions=\"", home);
+        Assert.Contains("map,", home + ",");
+        Assert.Contains(">map</button>", help);
+        Assert.Contains("Open the all-sports activity map", help);
     }
 
     [Theory]
@@ -381,6 +434,7 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
     [InlineData("/projects")]
     [InlineData("/projects/property-resolvers")]
     [InlineData("/timeline")]
+    [InlineData("/activity-map")]
     [InlineData("/contact")]
     [InlineData("/llms.txt")]
     [InlineData("/sitemap.xml")]
