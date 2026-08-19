@@ -25,6 +25,10 @@
                         }
                     </ul>
                 }
+                @if (project.ReleaseUrl is not null)
+                {
+                    <p><a href="@project.ReleaseUrl" rel="noopener noreferrer">Get it on JetBrains Marketplace</a></p>
+                }
                 <p><a href="@project.Url" rel="noopener noreferrer">View source on GitHub</a></p>
             </article>
         }

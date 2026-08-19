@@ -55,6 +55,16 @@ public static class TerminalContent
     public static readonly Project[] Projects =
     [
         new(
+            "reference-switcher",
+            "Reference Switcher",
+            "A JetBrains Rider plugin for switching NuGet package references to local .NET projects and restoring them exactly.",
+            ["Kotlin", "JetBrains Rider SDK", ".NET", "MSBuild"],
+            "The Rider plugin discovers local SDK-style .NET projects, replaces a selected PackageReference with a relative ProjectReference, and preserves the original XML for a safe restore.",
+            "https://github.com/tombiddulph/ReferenceSwitcher",
+            ["Configurable local source roots", "Background project discovery and package matching", "PackageReference switch tracking and exact restoration"],
+            ["Published on JetBrains Marketplace for Rider 2025.1+", "Preserves project formatting and the complete original package reference", "Refuses unsafe restores when the managed reference has changed"],
+            "https://plugins.jetbrains.com/plugin/33455-reference-switcher"),
+        new(
             "service-bus-explorer",
             "Service Bus Emulator Explorer",
             "A web UI for exploring and managing the Azure Service Bus Emulator.",
@@ -94,7 +104,7 @@ public static class TerminalContent
 
     public static readonly OpenSourceContribution[] Contributions =
     [
-        new("OPEN", "OpenTelemetry Collector Contrib #49399", "Adds configurable Azure Monitor HTTP success mapping aligned with OTel semantics.", "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49399"),
+        new("MERGED", "OpenTelemetry Collector Contrib #49399", "Added configurable Azure Monitor HTTP success mapping aligned with OTel semantics.", "https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/49399"),
         new("MERGED", "OpenTelemetry .NET #4882", "Allowed '/' characters in metric instrument names, including tests and changelog.", "https://github.com/open-telemetry/opentelemetry-dotnet/pull/4882"),
         new("MERGED", "OpenTelemetry .NET #4881", "Modernised the dotnet format CI job to use the .NET SDK command.", "https://github.com/open-telemetry/opentelemetry-dotnet/pull/4881"),
         new("MERGED", "SemanticBlazor #19", "Added a Blazor header component based on Semantic UI header patterns.", "https://github.com/strakamichal/SemanticBlazor/pull/19"),
@@ -125,7 +135,7 @@ public sealed record ResumeEntry(string Company, string Role, DateOnly From, Dat
 public sealed record EducationEntry(string Institution, string Qualification, string Result);
 public sealed record StackGroup(string Category, string[] Technologies);
 public sealed record TimelineItem(DateOnly When, string Title, string Detail);
-public sealed record Project(string Slug, string Title, string Summary, string[] Stack, string CaseStudy, string Url, string[] Architecture, string[] Highlights);
+public sealed record Project(string Slug, string Title, string Summary, string[] Stack, string CaseStudy, string Url, string[] Architecture, string[] Highlights, string? ReleaseUrl = null);
 public sealed record OpenSourceContribution(string Status, string Name, string Description, string Url);
 public sealed record HostingProfile(string Summary, string[] Pipeline, string Runtime);
 public sealed record ContactLink(string Name, string DisplayUrl, string Url);
