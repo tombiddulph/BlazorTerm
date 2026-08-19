@@ -122,6 +122,8 @@ public static class TerminalFormatter
         lines.AddRange(project.Highlights.Select(highlight => Line("  + " + highlight)));
         lines.Add(Line(string.Empty));
         lines.Add(WebLink("Read the web case study", $"/projects/{project.Slug}"));
+        if (project.ReleaseUrl is not null)
+            lines.Add(External("Get it on JetBrains Marketplace", project.ReleaseUrl));
         lines.Add(External("View source on GitHub", project.Url));
         return lines;
     }

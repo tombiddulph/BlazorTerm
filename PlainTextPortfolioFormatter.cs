@@ -79,6 +79,8 @@ public static class PlainTextPortfolioFormatter
             text.AppendLine(project.CaseStudy);
             text.AppendLine();
             text.AppendLine($"Stack: {string.Join(", ", project.Stack)}");
+            if (project.ReleaseUrl is not null)
+                text.AppendLine($"JetBrains Marketplace: {project.ReleaseUrl}");
             text.AppendLine();
         }
 

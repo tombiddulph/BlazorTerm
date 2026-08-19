@@ -24,6 +24,11 @@ public sealed class PortfolioContentTests
             Assert.NotEmpty(project.CaseStudy);
             Assert.NotEmpty(project.Architecture);
             Assert.NotEmpty(project.Highlights);
+            if (project.ReleaseUrl is not null)
+            {
+                Assert.True(Uri.TryCreate(project.ReleaseUrl, UriKind.Absolute, out var releaseUrl));
+                Assert.Equal(Uri.UriSchemeHttps, releaseUrl!.Scheme);
+            }
         });
     }
 
