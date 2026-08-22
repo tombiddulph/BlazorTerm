@@ -46,11 +46,40 @@ test('plays the trace topology boot once per session without blocking input', as
   await expect(input).toBeFocused();
   await input.pressSequentially('help', { delay: 0 });
   await expect(input).toHaveValue('help');
-  await expect(overlay).toBeHidden({ timeout: 4000 });
+  await expect(overlay).toBeHidden();
 
   await page.reload();
   await page.waitForTimeout(150);
   await expect(overlay).toBeHidden();
+});
+
+test('starts synchronized boot motion without waiting for the Blazor circuit', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.bootMotionStarts = [];
+    const beginElement = SVGAnimationElement.prototype.beginElement;
+    SVGAnimationElement.prototype.beginElement = function () {
+      window.bootMotionStarts.push(this.parentElement.getAttribute('class'));
+      return beginElement.call(this);
+    };
+  });
+  await page.route('**/_framework/blazor.web.js', route => route.abort());
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const overlay = page.locator('#terminal-boot');
+  await expect(overlay).toBeVisible();
+  await expect(overlay).toHaveClass(/is-running/);
+  const motions = overlay.locator('animateMotion');
+  await expect(motions).toHaveCount(4);
+  expect(await motions.evaluateAll(elements => elements.map(element => element.getAttribute('begin'))))
+    .toEqual(['indefinite', 'indefinite', 'indefinite', 'indefinite']);
+  await page.waitForFunction(() => window.bootMotionStarts.length === 4);
+  expect(await page.evaluate(() => window.bootMotionStarts)).toEqual([
+    'boot-pulse pulse-one',
+    'boot-pulse pulse-two',
+    'boot-pulse pulse-three',
+    'boot-pulse pulse-otel'
+  ]);
+  await expect(overlay).toBeHidden({ timeout: 4000 });
 });
 
 test('skips the trace topology boot for reduced motion', async ({ page }) => {

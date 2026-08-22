@@ -77,16 +77,16 @@
                         <text class="boot-node-detail" x="85" y="52">OpenTelemetry</text>
                     </g>
                     <circle class="boot-pulse pulse-one" r="6">
-                        <animateMotion dur="1.7s" begin="0.45s" repeatCount="2" path="M220 255 H315" />
+                        <animateMotion dur="1.7s" begin="indefinite" data-delay="450" repeatCount="2" path="M220 255 H315" />
                     </circle>
                     <circle class="boot-pulse pulse-two" r="6">
-                        <animateMotion dur="1.4s" begin="0.9s" repeatCount="2" path="M425 255 H575" />
+                        <animateMotion dur="1.4s" begin="indefinite" data-delay="900" repeatCount="2" path="M425 255 H575" />
                     </circle>
                     <circle class="boot-pulse pulse-three" r="6">
-                        <animateMotion dur="1.25s" begin="1.25s" repeatCount="2" path="M685 255 H855" />
+                        <animateMotion dur="1.25s" begin="indefinite" data-delay="1250" repeatCount="2" path="M685 255 H855" />
                     </circle>
                     <circle class="boot-pulse pulse-otel" r="6">
-                        <animateMotion dur="0.8s" begin="1.55s" repeatCount="2" path="M630 305 V405" />
+                        <animateMotion dur="0.8s" begin="indefinite" data-delay="1550" repeatCount="2" path="M630 305 V405" />
                     </circle>
                 </svg>
                 <div class="boot-kicker">BLAZORTERM / LIVE EXECUTION GRAPH</div>
@@ -286,7 +286,6 @@
         if (firstRender)
         {
             var selectedTheme = await JS.InvokeAsync<string>("terminalUi.initializeTheme", Theme, _themeNeedsStorage);
-            await JS.InvokeVoidAsync("terminalUi.startBoot");
             _themeNeedsStorage = false;
             if (!selectedTheme.Equals(Theme, StringComparison.Ordinal))
             {
