@@ -307,7 +307,7 @@ html.terminal-boot-pending .terminal-boot {
 }
 
 .is-running .boot-node {
-    animation: boot-node-in 450ms cubic-bezier(0.2, 0.85, 0.3, 1.25) forwards;
+    animation: boot-node-in 450ms ease forwards;
 }
 
 .is-running .node-parser { animation-delay: 250ms; }
@@ -373,7 +373,7 @@ html.terminal-boot-pending .terminal-boot {
     animation: boot-scan 1.35s linear 500ms 2;
 }
 
-.terminal-window.booting .terminal {
+html.terminal-boot-pending .terminal-window.booting .terminal {
     filter: blur(1px);
     opacity: 0.22;
     transform: scale(0.992);

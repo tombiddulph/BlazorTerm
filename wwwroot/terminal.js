@@ -9,9 +9,6 @@ function syncInputWidth(input) {
 }
 
 window.terminalUi = {
-    startBoot: function () {
-        startTerminalBoot();
-    },
     initializeTheme: function (currentTheme, preferCurrent) {
         const validThemes = ["theme-green", "theme-amber", "theme-nord", "theme-solarized", "theme-dracula"];
         let selected = currentTheme;
@@ -57,16 +54,49 @@ dismissButton?.addEventListener("click", () => blazorError.style.display = "none
 function startTerminalBoot() {
     const overlay = document.getElementById("terminal-boot");
     const windowElement = overlay?.closest(".terminal-window");
-    if (!overlay || !windowElement || !document.documentElement.classList.contains("terminal-boot-pending")) return;
+    const root = document.documentElement;
+    if (!overlay || !windowElement || !root.classList.contains("terminal-boot-pending")) return;
 
+    let finished = false;
+    const motionTimers = [];
     windowElement.classList.add("booting");
-    requestAnimationFrame(() => overlay.classList.add("is-running"));
-    setTimeout(() => {
-        document.documentElement.classList.remove("terminal-boot-pending");
+
+    const finishBoot = () => {
+        if (finished) return;
+        finished = true;
+        motionTimers.forEach(clearTimeout);
+        observer.disconnect();
+        overlay.removeEventListener("animationend", handleAnimationEnd);
+        document.removeEventListener("pointerdown", finishBoot);
+        document.removeEventListener("keydown", finishBoot);
+        root.classList.remove("terminal-boot-pending");
         overlay.classList.remove("is-running");
         windowElement.classList.remove("booting");
-    }, 3000);
+    };
+
+    const handleAnimationEnd = event => {
+        if (event.target === overlay && event.animationName === "boot-overlay-exit") finishBoot();
+    };
+
+    const observer = new MutationObserver(() => {
+        if (!root.classList.contains("terminal-boot-pending")) finishBoot();
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    overlay.addEventListener("animationend", handleAnimationEnd);
+    document.addEventListener("pointerdown", finishBoot);
+    document.addEventListener("keydown", finishBoot);
+
+    requestAnimationFrame(() => {
+        if (finished) return;
+        overlay.classList.add("is-running");
+        overlay.querySelectorAll("animateMotion").forEach(motion => {
+            const timer = setTimeout(() => motion.beginElement(), Number(motion.dataset.delay));
+            motionTimers.push(timer);
+        });
+    });
 }
+
+startTerminalBoot();
 
 document.addEventListener("keydown", function (event) {
     if (!event.target || event.target.id !== "terminal-input") return;
