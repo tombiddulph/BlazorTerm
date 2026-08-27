@@ -10,6 +10,10 @@ test('renders privacy-filtered activity lines on desktop and mobile', async ({ p
   const data = await (await request.get('/activity-map.json')).json();
   await page.goto('/activity-map');
   await expect(page.getByRole('heading', { name: 'Ground covered.' })).toBeVisible();
+  const replay = page.locator('#activity-map-replay');
+  await expect(replay).toBeVisible();
+  await expect(replay).toBeDisabled();
+  await expect(replay).toBeEnabled({ timeout: 10000 });
   await expect(page.locator('#map-activity-count')).toHaveText(data.activityCount.toLocaleString());
   await expect(page.locator('#map-distance-count')).toHaveText(
     `${data.distanceKilometers.toLocaleString()} km / ${Math.round(data.distanceKilometers * 0.621371).toLocaleString()} mi`);
@@ -22,10 +26,9 @@ test('renders privacy-filtered activity lines on desktop and mobile', async ({ p
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await expect(page.locator('#activity-map-status')).toBeHidden();
 
-  const replay = page.locator('#activity-map-replay');
-  await expect(replay).toBeEnabled();
   await replay.click();
   await expect(replay).toHaveText('Tracing...');
+  await expect(replay).toBeEnabled({ timeout: 10000 });
   await expect(page.locator('#map-activity-count')).toHaveText(data.activityCount.toLocaleString());
 
   await page.setViewportSize({ width: 390, height: 844 });
