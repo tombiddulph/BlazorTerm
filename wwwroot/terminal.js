@@ -60,6 +60,7 @@ function startTerminalBoot() {
     let finished = false;
     const motionTimers = [];
     windowElement.classList.add("booting");
+    root.classList.add("terminal-boot-running");
 
     const finishBoot = () => {
         if (finished) return;
@@ -70,7 +71,7 @@ function startTerminalBoot() {
         document.removeEventListener("pointerdown", finishBoot);
         document.removeEventListener("keydown", finishBoot);
         root.classList.remove("terminal-boot-pending");
-        overlay.classList.remove("is-running");
+        root.classList.remove("terminal-boot-running");
         windowElement.classList.remove("booting");
     };
 
@@ -88,7 +89,6 @@ function startTerminalBoot() {
 
     requestAnimationFrame(() => {
         if (finished) return;
-        overlay.classList.add("is-running");
         overlay.querySelectorAll("animateMotion").forEach(motion => {
             const timer = setTimeout(() => motion.beginElement(), Number(motion.dataset.delay));
             motionTimers.push(timer);

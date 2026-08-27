@@ -42,8 +42,9 @@ test('plays the trace topology boot once per session without blocking input', as
   const overlay = page.locator('#terminal-boot');
   const input = page.locator('#terminal-input');
   await expect(overlay).toBeVisible();
-  await expect(overlay).toHaveClass(/is-running/);
+  await expect(page.locator('html')).toHaveClass(/terminal-boot-running/);
   await expect(input).toBeFocused();
+  await expect(page.locator('html')).toHaveClass(/terminal-boot-running/);
   await input.pressSequentially('help', { delay: 0 });
   await expect(input).toHaveValue('help');
   await expect(overlay).toBeHidden();
@@ -67,7 +68,7 @@ test('starts synchronized boot motion without waiting for the Blazor circuit', a
 
   const overlay = page.locator('#terminal-boot');
   await expect(overlay).toBeVisible();
-  await expect(overlay).toHaveClass(/is-running/);
+  await expect(page.locator('html')).toHaveClass(/terminal-boot-running/);
   const motions = overlay.locator('animateMotion');
   await expect(motions).toHaveCount(4);
   expect(await motions.evaluateAll(elements => elements.map(element => element.getAttribute('begin'))))
