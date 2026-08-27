@@ -11,7 +11,7 @@
     <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>try{document.documentElement.dataset.terminalTheme=localStorage.getItem("blazorterm-theme")||""}catch{}try{if(location.pathname==="/"&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&sessionStorage.getItem("blazorterm-boot-seen")!=="true"){sessionStorage.setItem("blazorterm-boot-seen","true");document.documentElement.classList.add("terminal-boot-pending");setTimeout(()=>document.documentElement.classList.remove("terminal-boot-pending"),4000)}}catch{}</script>
+    <script>try{document.documentElement.dataset.terminalTheme=localStorage.getItem("blazorterm-theme")||""}catch{}try{if(location.pathname==="/"&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&sessionStorage.getItem("blazorterm-boot-seen")!=="true"){sessionStorage.setItem("blazorterm-boot-seen","true");document.documentElement.classList.add("terminal-boot-pending");addEventListener("DOMContentLoaded",()=>setTimeout(()=>document.documentElement.classList.remove("terminal-boot-pending"),4000),{once:true})}}catch{}</script>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["BlazorTerm.styles.css"]" />

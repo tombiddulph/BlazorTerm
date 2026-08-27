@@ -242,7 +242,7 @@ html.terminal-boot-pending .terminal-boot {
     display: block;
 }
 
-.terminal-boot.is-running {
+html.terminal-boot-running .terminal-boot {
     animation: boot-overlay-exit 500ms ease 2.45s forwards;
 }
 
@@ -272,13 +272,13 @@ html.terminal-boot-pending .terminal-boot {
     stroke-width: 2;
 }
 
-.is-running .boot-links path {
+html.terminal-boot-running .boot-links path {
     animation: boot-link-draw 600ms ease forwards;
 }
 
-.is-running #boot-link-parser { animation-delay: 300ms; }
-.is-running #boot-link-output { animation-delay: 600ms; }
-.is-running #boot-link-otel { animation-delay: 900ms; }
+html.terminal-boot-running #boot-link-parser { animation-delay: 300ms; }
+html.terminal-boot-running #boot-link-output { animation-delay: 600ms; }
+html.terminal-boot-running #boot-link-otel { animation-delay: 900ms; }
 
 .boot-node {
     opacity: 0;
@@ -306,14 +306,14 @@ html.terminal-boot-pending .terminal-boot {
     letter-spacing: 0.04em;
 }
 
-.is-running .boot-node {
+html.terminal-boot-running .boot-node {
     animation: boot-node-in 450ms ease forwards;
 }
 
-.is-running .node-parser { animation-delay: 250ms; }
-.is-running .node-pipeline { animation-delay: 550ms; }
-.is-running .node-output { animation-delay: 850ms; }
-.is-running .node-otel { animation-delay: 1.1s; }
+html.terminal-boot-running .node-parser { animation-delay: 250ms; }
+html.terminal-boot-running .node-pipeline { animation-delay: 550ms; }
+html.terminal-boot-running .node-output { animation-delay: 850ms; }
+html.terminal-boot-running .node-otel { animation-delay: 1.1s; }
 
 .boot-pulse {
     fill: var(--fg-bright);
@@ -321,7 +321,7 @@ html.terminal-boot-pending .terminal-boot {
     opacity: 0;
 }
 
-.is-running .boot-pulse {
+html.terminal-boot-running .boot-pulse {
     animation: boot-pulse-in 200ms ease 400ms forwards;
 }
 
@@ -354,8 +354,8 @@ html.terminal-boot-pending .terminal-boot {
     width: 0.55rem;
 }
 
-.is-running .boot-kicker,
-.is-running .boot-status {
+html.terminal-boot-running .boot-kicker,
+html.terminal-boot-running .boot-status {
     animation: boot-label-in 350ms ease 150ms forwards;
 }
 
@@ -369,7 +369,7 @@ html.terminal-boot-pending .terminal-boot {
     top: -18%;
 }
 
-.is-running .boot-scanline {
+html.terminal-boot-running .boot-scanline {
     animation: boot-scan 1.35s linear 500ms 2;
 }
 
