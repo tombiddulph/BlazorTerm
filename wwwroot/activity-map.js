@@ -26,45 +26,46 @@ async function initializeMap(container) {
             zoom: 1.35,
             minZoom: 1.2,
             projection: { type: "globe" },
-            style: {
-                version: 8,
-                glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
-                sources: {
-                    carto: {
-                        type: "raster",
-                        tiles: [
-                            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-                            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-                            "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
-                        ],
-                        tileSize: 512,
-                        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
-                    }
-                },
-                layers: [
-                    { id: "space", type: "background", paint: { "background-color": "#030405" } },
-                    {
-                        id: "basemap",
-                        type: "raster",
-                        source: "carto",
-                        paint: {
-                            "raster-brightness-max": 0.78,
-                            "raster-contrast": 0.08,
-                            "raster-opacity": 0.82,
-                            "raster-saturation": -0.7
-                        }
-                    }
-                ]
-            }
+            style: "https://tiles.openfreemap.org/styles/liberty"
         });
 
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-        map.once("load", () => renderRoutes(map, data, reducedMotion));
+        map.once("load", () => {
+            darkenBasemap(map);
+            renderRoutes(map, data, reducedMotion);
+        });
         document.getElementById("map-route-detail").textContent = `${data.geometryPrecisionMeters} m`;
         renderSportBreakdown(data);
     } catch (error) {
         console.error(error);
         status.textContent = "The activity map could not be loaded.";
+    }
+}
+
+function darkenBasemap(map) {
+    for (const layer of map.getStyle().layers) {
+        if (layer.type === "background") {
+            map.setPaintProperty(layer.id, "background-color", "#030405");
+            continue;
+        }
+
+        if (layer.type === "fill") {
+            map.setPaintProperty(layer.id, "fill-color", "#111514");
+            map.setPaintProperty(layer.id, "fill-opacity", 0.85);
+        } else if (layer.type === "line") {
+            map.setPaintProperty(layer.id, "line-color", "#39413e");
+            map.setPaintProperty(layer.id, "line-opacity", 0.55);
+        } else if (layer.type === "symbol") {
+            if (map.getPaintProperty(layer.id, "text-color") !== undefined) {
+                map.setPaintProperty(layer.id, "text-color", "#7e8783");
+            }
+            if (map.getPaintProperty(layer.id, "text-halo-color") !== undefined) {
+                map.setPaintProperty(layer.id, "text-halo-color", "#080a09");
+            }
+            if (map.getPaintProperty(layer.id, "icon-opacity") !== undefined) {
+                map.setPaintProperty(layer.id, "icon-opacity", 0.35);
+            }
+        }
     }
 }
 
