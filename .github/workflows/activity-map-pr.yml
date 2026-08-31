@@ -13,15 +13,24 @@ jobs:
   open-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Open pull request
+      - name: Open pull request and enable auto-merge
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh pr view automation/activity-map --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh pr create \
+          pr_url=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --head automation/activity-map \
+            --state open \
+            --json url \
+            --jq '.[0].url')
+
+          if [ -z "$pr_url" ]; then
+            pr_url=$(gh pr create \
               --repo "$GITHUB_REPOSITORY" \
               --base main \
               --head automation/activity-map \
               --title "Update activity map data" \
-              --body "Automated privacy-filtered activity map refresh from the local Strava database."
+              --body "Automated privacy-filtered activity map refresh from the local Strava database.")
           fi
+
+          gh pr merge "$pr_url" --repo "$GITHUB_REPOSITORY" --auto --squash
