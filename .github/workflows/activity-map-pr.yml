@@ -1,0 +1,27 @@
+name: Activity map PR
+
+on:
+  push:
+    branches:
+      - automation/activity-map
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh pr view automation/activity-map --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head automation/activity-map \
+              --title "Update activity map data" \
+              --body "Automated privacy-filtered activity map refresh from the local Strava database."
+          fi
