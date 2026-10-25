@@ -425,7 +425,7 @@ public sealed class ApplicationTests : IClassFixture<WebApplicationFactory<Progr
     {
         var html = await _client.GetStringAsync($"/?cmd=theme%20{theme}");
 
-        Assert.Contains($"site-shell theme-{theme}", html);
+        Assert.Contains($"terminal-console theme-{theme}", html);
         Assert.Contains($"Theme changed to {theme}.", html);
     }
 
