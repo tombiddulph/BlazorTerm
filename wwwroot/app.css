@@ -85,12 +85,14 @@ button {
 }
 
 .site-shell.theme-amber,
+.site-shell:has(.terminal-console.theme-amber),
 html[data-terminal-theme="theme-amber"] .site-shell {
     --accent: #ffc85a;
     --accent-rgb: 255, 200, 90;
 }
 
 .site-shell.theme-nord,
+.site-shell:has(.terminal-console.theme-nord),
 html[data-terminal-theme="theme-nord"] .site-shell {
     --accent: #88c0d0;
     --accent-rgb: 136, 192, 208;
@@ -104,6 +106,7 @@ html[data-terminal-theme="theme-nord"] .site-shell {
 }
 
 .site-shell.theme-solarized,
+.site-shell:has(.terminal-console.theme-solarized),
 html[data-terminal-theme="theme-solarized"] .site-shell {
     --accent: #2aa198;
     --accent-rgb: 42, 161, 152;
@@ -117,6 +120,7 @@ html[data-terminal-theme="theme-solarized"] .site-shell {
 }
 
 .site-shell.theme-dracula,
+.site-shell:has(.terminal-console.theme-dracula),
 html[data-terminal-theme="theme-dracula"] .site-shell {
     --accent: #bd93f9;
     --accent-rgb: 189, 147, 249;
@@ -127,6 +131,10 @@ html[data-terminal-theme="theme-dracula"] .site-shell {
     --fg-faint: #a1a1b3;
     --page-bg: #20212b;
     --terminal-bg: #282a36;
+}
+
+.terminal-console {
+    display: contents;
 }
 
 .terminal-window {
@@ -230,7 +238,7 @@ html[data-terminal-theme="theme-dracula"] .site-shell {
     background:
         radial-gradient(circle at 50% 48%, rgba(var(--accent-rgb), 0.13), transparent 38%),
         rgba(5, 9, 8, 0.94);
-    inset: 0;
+    inset: 38px 0 32px;
     overflow: hidden;
     pointer-events: none;
     position: absolute;

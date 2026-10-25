@@ -1,6 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
-using BlazorTerm.Components.Pages;
+using BlazorTerm.Components;
 using Microsoft.AspNetCore.Components;
 
 namespace BlazorTerm.Tests;
@@ -93,10 +93,10 @@ public sealed class PortfolioContentTests
     [Fact]
     public void TerminalSession_IsPersistentAndSerializable()
     {
-        var persistedSession = typeof(Home).GetProperty(nameof(Home.PersistedSession));
+        var persistedSession = typeof(TerminalConsole).GetProperty(nameof(TerminalConsole.PersistedSession));
         Assert.NotNull(persistedSession?.GetCustomAttribute<PersistentStateAttribute>());
 
-        var session = new Home.TerminalSession
+        var session = new TerminalConsole.TerminalSession
         {
             Input = "projects",
             Theme = "theme-amber",
@@ -104,7 +104,7 @@ public sealed class PortfolioContentTests
             TourStep = 4,
             Entries =
             [
-                new Home.HistoryEntry(
+                new TerminalConsole.HistoryEntry(
                     "resume",
                     "~",
                     new CommandResult([TerminalFormatter.Line("TOM BIDDULPH", "heading")]))
@@ -112,7 +112,7 @@ public sealed class PortfolioContentTests
             CommandHistory = ["help", "resume"]
         };
 
-        var restored = JsonSerializer.Deserialize<Home.TerminalSession>(JsonSerializer.Serialize(session));
+        var restored = JsonSerializer.Deserialize<TerminalConsole.TerminalSession>(JsonSerializer.Serialize(session));
 
         Assert.NotNull(restored);
         Assert.Equal(session.Input, restored.Input);

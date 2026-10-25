@@ -54,6 +54,28 @@ test('plays the trace topology boot once per session without blocking input', as
   await expect(overlay).toBeHidden();
 });
 
+test('does not restart the intro when the Blazor circuit becomes interactive', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.bootAnimationStarts = 0;
+    document.addEventListener('animationstart', event => {
+      if (event.animationName === 'boot-overlay-exit') window.bootAnimationStarts++;
+    });
+  });
+  // Let the prerendered intro start before Blazor replaces the interactive DOM.
+  await page.route('**/_framework/blazor.web.js', async route => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await route.continue();
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const overlay = page.locator('#terminal-boot');
+  await expect(overlay).toBeVisible();
+  const originalOverlay = await overlay.elementHandle();
+  await expect(page.locator('#terminal-input')).toBeFocused();
+  expect(await originalOverlay.evaluate(element => element.isConnected)).toBe(true);
+  await expect(overlay).toBeHidden({ timeout: 5000 });
+  expect(await page.evaluate(() => window.bootAnimationStarts)).toBe(1);
+});
+
 test('starts synchronized boot motion without waiting for the Blazor circuit', async ({ page }) => {
   await page.addInitScript(() => {
     window.bootMotionStarts = [];
@@ -343,7 +365,7 @@ test('applies the selected accent to the prompt', async ({ page }) => {
   await page.locator('#terminal-input').pressSequentially('theme amber', { delay: 0 });
   await page.locator('#terminal-input').press('Enter');
 
-  await expect(page.locator('.site-shell')).toHaveClass(/theme-amber/);
+  await expect(page.locator('.terminal-console')).toHaveClass(/theme-amber/);
   const amber = await segment.evaluate(element => getComputedStyle(element).color);
   expect(amber).not.toBe(green);
 });
@@ -357,7 +379,7 @@ test('persists each extended theme across a new page session', async ({ page, co
   for (const theme of ['nord', 'solarized', 'dracula']) {
     await input.pressSequentially(`theme ${theme}`, { delay: 0 });
     await input.press('Enter');
-    await expect(page.locator('.site-shell')).toHaveClass(new RegExp(`theme-${theme}`));
+    await expect(page.locator('.terminal-console')).toHaveClass(new RegExp(`theme-${theme}`));
     palettes.push(await page.locator('.site-shell').evaluate(element => {
       const style = getComputedStyle(element);
       return [style.getPropertyValue('--accent'), style.getPropertyValue('--page-bg'), style.getPropertyValue('--terminal-bg')].join('|');
@@ -370,7 +392,7 @@ test('persists each extended theme across a new page session', async ({ page, co
   const freshPage = await context.newPage();
   await freshPage.goto('/');
   await expect(freshPage.locator('html')).toHaveAttribute('data-terminal-theme', 'theme-dracula');
-  await expect(freshPage.locator('.site-shell')).toHaveClass(/theme-dracula/);
+  await expect(freshPage.locator('.terminal-console')).toHaveClass(/theme-dracula/);
 });
 
 test('vim traps shell commands, offers a delayed hint, and exits only with :q!', async ({ page }) => {

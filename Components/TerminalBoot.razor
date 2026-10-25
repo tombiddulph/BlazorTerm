@@ -1,0 +1,51 @@
+<div id="terminal-boot" class="terminal-boot" aria-hidden="true">
+    <div class="boot-grid"></div>
+    <svg class="boot-topology" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet">
+        <g class="boot-links">
+            <path id="boot-link-input" d="M220 255 H315" />
+            <path id="boot-link-parser" d="M425 255 H575" />
+            <path id="boot-link-output" d="M685 255 H855" />
+            <path id="boot-link-otel" d="M630 305 V405" />
+        </g>
+        <g class="boot-node node-input" transform="translate(70 205)">
+            <rect width="150" height="100" rx="8" />
+            <text x="75" y="45">INPUT</text>
+            <text class="boot-node-detail" x="75" y="68">command stream</text>
+        </g>
+        <g class="boot-node node-parser" transform="translate(315 205)">
+            <rect width="110" height="100" rx="8" />
+            <text x="55" y="45">PARSE</text>
+            <text class="boot-node-detail" x="55" y="68">tokens + pipes</text>
+        </g>
+        <g class="boot-node node-pipeline" transform="translate(575 205)">
+            <rect width="110" height="100" rx="8" />
+            <text x="55" y="45">EXEC</text>
+            <text class="boot-node-detail" x="55" y="68">async pipeline</text>
+        </g>
+        <g class="boot-node node-output" transform="translate(855 205)">
+            <rect width="110" height="100" rx="8" />
+            <text x="55" y="45">RENDER</text>
+            <text class="boot-node-detail" x="55" y="68">structured output</text>
+        </g>
+        <g class="boot-node node-otel" transform="translate(545 405)">
+            <rect width="170" height="72" rx="8" />
+            <text x="85" y="32">OBSERVE</text>
+            <text class="boot-node-detail" x="85" y="52">OpenTelemetry</text>
+        </g>
+        <circle class="boot-pulse pulse-one" r="6">
+            <animateMotion dur="1.7s" begin="indefinite" data-delay="450" repeatCount="2" path="M220 255 H315" />
+        </circle>
+        <circle class="boot-pulse pulse-two" r="6">
+            <animateMotion dur="1.4s" begin="indefinite" data-delay="900" repeatCount="2" path="M425 255 H575" />
+        </circle>
+        <circle class="boot-pulse pulse-three" r="6">
+            <animateMotion dur="1.25s" begin="indefinite" data-delay="1250" repeatCount="2" path="M685 255 H855" />
+        </circle>
+        <circle class="boot-pulse pulse-otel" r="6">
+            <animateMotion dur="0.8s" begin="indefinite" data-delay="1550" repeatCount="2" path="M630 305 V405" />
+        </circle>
+    </svg>
+    <div class="boot-kicker">BLAZORTERM / LIVE EXECUTION GRAPH</div>
+    <div class="boot-status"><span></span> parser online / telemetry linked / shell ready</div>
+    <div class="boot-scanline"></div>
+</div>
