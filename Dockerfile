@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 ARG SOURCE_REVISION=development
 ARG BUILD_TIMESTAMP=development
 WORKDIR /src
@@ -14,7 +14,7 @@ RUN dotnet publish BlazorTerm.csproj \
     -p:UseAppHost=false \
     -p:InformationalVersion="1.0.0+${SOURCE_REVISION}"
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS final
 ARG SOURCE_REVISION=development
 ARG BUILD_TIMESTAMP=development
 WORKDIR /app
