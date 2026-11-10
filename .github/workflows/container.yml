@@ -30,7 +30,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
           cache: true
           cache-dependency-path: "**/*.csproj"
 
@@ -83,7 +83,7 @@ jobs:
             type=sha,prefix=sha-
           labels: |
             org.opencontainers.image.title=BlazorTerm
-            org.opencontainers.image.description=Interactive iTerm-inspired portfolio built with Blazor and .NET 10
+            org.opencontainers.image.description=Interactive iTerm-inspired portfolio built with Blazor and .NET 11
 
       - name: Set build timestamp
         run: echo "BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
